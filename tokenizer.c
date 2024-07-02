@@ -1,7 +1,35 @@
-#include <token.h>
+#include "token.h"
 
 
 static File *current_file;
+
+// Compilers have to handle multiple input files at the same time
+static File **input_files;
+
+Token *tokenize(File *file) {
+    current_file = file;
+    char *content = file->contents;
+    
+    while (*content) {
+        // Check if this starts with a "//" and skip it
+        // if yes, do another while loop to keep incrementing content until it hits a new line and then start at the top of the loop again
+        // Check if this starts with a "/*"
+        // if yes, find the first occurence of "*/" after incrementing content by 2
+        // if its not found, throw an error cause they didnt close the block comment and continue
+        // Check if this starts with "\n"
+
+        // List of all cases: //, /*, \n, , 1-9, "", u8\"", u\"", "L\"", "U\"", \, u', L', U', identifiers, keywords, punctuators, 
+    }
+}
+
+File *new_file(char* name, int file_num, char *contents) {
+    File *file = calloc(1, sizeof(File));
+    file->name = name;
+    file->unique_id = file_num;
+    file->display_name = name;
+    file->contents = contents;
+    return file;
+}
 
 static char *read_file(char* path) {
     FILE *file_path;
@@ -50,5 +78,15 @@ Token *tokenize_file(char *path) {
     // This statement skips it
     if (!memcmp(p, "\xef\xbb\xbf", 3))
         p += 3;
-    
+
+    static int file_num;
+
+    File* file = new_file(path, file_num + 1, p);
+
+    input_files = realloc(input_files, sizeof(char *) * (file_num + 2));
+    input_files[file_num] = file;
+    input_files[file_num + 1] = NULL;
+    file_num++;
+
+    return NULL;
 }

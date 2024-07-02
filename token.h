@@ -4,9 +4,23 @@
 #include <ctype.h>
 #include <assert.h>
 #include <stdbool.h>
+#include <string.h>
+
+File *new_file(char* name, int file_num, char *contents);
+static char *read_file(char* path);
 
 typedef struct Token Token;
 typedef struct Type Type;
+
+typedef struct File {
+  char *name; // Original filename
+  int unique_id; // Unique file num
+  char *contents;
+
+  char *display_name; // Display name for error messages
+  int line_number; // Line number delta
+} File;
+
 typedef enum {
   T_IDENT,   // Identifiers
   T_PUNCT,   // Punctuators
@@ -16,16 +30,6 @@ typedef enum {
   T_PP_NUM,  // Preprocessing numbers
   T_EOF,     // End-of-file markers
 } TokenType;
-
-typedef struct {
-  char *name;
-  int file_no;
-  char *contents;
-
-  // For #line directive
-  char *display_name;
-  int line_delta;
-} File;
 
 typedef struct Token {
     TokenType type;
@@ -60,4 +64,4 @@ typedef struct Type {
     Token *name_pos;
 
     int array_len;
-};
+} Type;
