@@ -21,7 +21,7 @@ typedef struct File {
   int line_number; // Line number delta
 } File;
 
-typedef enum {
+typedef enum TokenType {
   T_IDENT,   // Identifiers
   T_PUNCT,   // Punctuators
   T_KEYWORD, // Keywords
