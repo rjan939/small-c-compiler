@@ -38,7 +38,7 @@ static Token *tokenize(char *p) {
     while (*p) {
 
         // Skip whitespace characters
-        if (is_space(*p)) {
+        if (isspace(*p)) {
             p++;
             continue;
         }
@@ -71,19 +71,19 @@ int main(int argc, char **argv) {
     if (argc != 2) error("%s: invalid number of arguments", argv[0]);
 
     Token *token = tokenize(argv[1]);
-    
     printf("  .globl main\n");
     printf("main:\n");
 
     // First token has to be a number
-    printf("  mov $%d, %%rax\n, ", get_number(token));
+    printf("  mov $%d, %%rax\n", get_number(token));
     token = token->next;
 
     while (token->type != T_EOF) {
         if (equal(token, "+")) {
-            printf("  add$%d, %%rax\n", get_number(token->next));
+            printf("  add $%d, %%rax\n", get_number(token->next));
             token = token->next->next;
             continue;
+      
         }
 
         token = skip(token, "-");

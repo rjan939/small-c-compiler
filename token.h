@@ -6,12 +6,6 @@
 #include <stdbool.h>
 #include <string.h>
 
-File *new_file(char* name, int file_num, char *contents);
-static char *read_file(char* path);
-
-typedef struct Token Token;
-typedef struct Type Type;
-
 typedef struct File {
   char *name; // Original filename
   int unique_id; // Unique file num
@@ -20,6 +14,13 @@ typedef struct File {
   char *display_name; // Display name for error messages
   int line_number; // Line number delta
 } File;
+
+
+File *new_file(char* name, int file_num, char *contents);
+//static char *read_file(char* path);
+
+typedef struct Token Token;
+typedef struct Type Type;
 
 typedef enum TokenType {
   T_IDENT,   // Identifiers
