@@ -5,70 +5,80 @@
 static char *current_input;
 
 static void error(char *fmt, ...) {
-    va_list argument_pointer;
-    va_start(argument_pointer, fmt);
-    vfprintf(stderr, fmt, argument_pointer);
-    fprintf(stderr, "\n");
-    exit(1);
+  va_list argument_pointer;
+  va_start(argument_pointer, fmt);
+  vfprintf(stderr, fmt, argument_pointer);
+  fprintf(stderr, "\n");
+  exit(1);
 }
 
 static bool equal(Token *token, char *op) {
-    return memcmp(token->loc, op, token->len) == 0 && op[token->len] == '\0';
+  return memcmp(token->loc, op, token->len) == 0 && op[token->len] == '\0';
 }
 
 static Token *skip(Token *token, char *s) {
-    if (!equal(token, s)) error("expected '%s'", s);
-    return token->next;
+  if (!equal(token, s)) error("expected '%s'", s);
+  return token->next;
 }
 
 int get_number(Token *token) {
-    if (token->type != T_NUM) error("expected a number");
-    return token->val;
+  if (token->type != T_NUM) error("expected a number");
+  return token->val;
 }
 
+
 static Token *new_token(TokenType type, char *start, char *end) {
-    Token *token = calloc(1, sizeof(Token));
-    token->type = type;
-    token->loc = start;
-    token->len = end - start;
-    return token;
+  Token *token = calloc(1, sizeof(Token));
+  token->type = type;
+  token->loc = start;
+  token->len = end - start;
+  return token;
+}
+
+static bool startswith(char *p, char *q) {
+  return strncmp(p, q, strlen(q)) == 0;
+}
+
+static int get_punct_length(char *p) {
+  if (startswith(p, "==") || startswith(p, "!=") ||
+      startswith(p, ">=") || startswith(p, "<=")) {
+    return 2;
+  }
+  return ispunct(*p) ? 1 : 0;
 }
 
 static Token *tokenize(void) {
-    char *p = current_input;
-    Token head = {};
-    Token *cur = &head;
+  char *p = current_input;   
+  Token head = {};
+  Token *cur = &head;
 
-    while (*p) {
+  while (*p) {
 
-        // Skip whitespace characters
-        if (isspace(*p)) {
-            p++;
-            continue;
-        }
-
-        
-        // Numeric literal
-        if (isdigit(*p)) {
-            cur = cur->next = new_token(T_NUM, p, p);
-            char *q = p;
-            cur->val = strtoul(p, &p, 10);
-            cur->len = p - q;
-            continue;
-        }
-
-        // Punctuator
-        if (ispunct(*p)) {
-            cur = cur->next = new_token(T_PUNCT, p, p + 1);
-            p++;
-            continue;
-        }
-
-        error("invalid token");
+    // Skip whitespace characters
+    if (isspace(*p)) {
+      p++;
+      continue;
     }
 
-    cur = cur->next = new_token(T_EOF, p, p);
-    return head.next;
+    // Numeric literal
+    if (isdigit(*p)) {
+      cur = cur->next = new_token(T_NUM, p, p);
+      char *q = p;
+      cur->val = strtoul(p, &p, 10);
+      cur->len = p - q;
+      continue;
+    }
+    // Punctuator
+    int punct_len = get_punct_length(p);
+    if (punct_len) {
+      cur = cur->next = new_token(T_PUNCT, p, p + punct_len);
+      p += punct_len;
+      continue;
+    }
+    error("invalid token");
+  }
+  cur = cur->next = new_token(T_EOF, p, p);
+  return head.next;
 }
 
 
@@ -239,36 +249,21 @@ static void gen_expr(Node *node) {
 
 
 int main(int argc, char **argv) {
-    if (argc != 2) error("%s: invalid number of arguments", argv[0]);
-    current_input = argv[1];
-    Token *token = tokenize();
-    Node *node = expr(&token, token);
-    
-    if (token->type != T_EOF) {
-      error("extra token");
-    }
+  if (argc != 2) error("%s: invalid number of arguments", argv[0]);
+  current_input = argv[1];
+  Token *token = tokenize();
+  Node *node = expr(&token, token);
 
-    printf("  .globl main\n");
-    printf("main:\n");
+  if (token->type != T_EOF) {
+    error("extra token");
+  }
 
-    // First token has to be a number
-    /*printf("  mov $%d, %%rax\n", get_number(token));
-    token = token->next;
+  printf("  .globl main\n");
+  printf("main:\n");
 
-    while (token->type != T_EOF) {
-        if (equal(token, "+")) {
-            printf("  add $%d, %%rax\n", get_number(token->next));
-            token = token->next->next;
-            continue;
-      
-        }
+  gen_expr(node);
+  printf("  ret\n");
+  assert(depth == 0);
 
-        token = skip(token, "-");
-        printf("  sub $%d, %%rax\n", get_number(token));
-        token = token->next;
-    }*/ 
-    gen_expr(node);
-    printf("  ret\n");
-    assert(depth == 0);
-    return 0;
+  return 0;
 }

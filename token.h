@@ -33,36 +33,36 @@ typedef enum TokenType {
 } TokenType;
 
 typedef struct Token {
-    TokenType type;
-    Token *next;
-    int64_t val;
-    long double fval;
-    char *loc;
-    int len;
-    Type *ty;
-    char *str;
+  TokenType type;
+  Token *next;
+  int64_t val;
+  long double fval;
+  char *loc;
+  int len;
+  Type *ty;
+  char *str;
 
-    File *file;
-    char *filename;
-    int line_num;
-    int line_delta;
-    bool at_beginning;
-    bool follows_space;
-    Token *origin;
+  File *file;
+  char *filename;
+  int line_num;
+  int line_delta;
+  bool at_beginning;
+  bool follows_space;
+  Token *origin;
 } Token;
 
 typedef struct Type {
-    TokenType type;
-    int size;
-    int align;
-    bool is_unsigned;
-    bool is_atomic;
-    Type *origin;
+  TokenType type;
+  int size;
+  int align;
+  bool is_unsigned;
+  bool is_atomic;
+  Type *origin;
 
-    Type* base;
+  Type* base;
 
-    Token *name;
-    Token *name_pos;
+  Token *name;
+  Token *name_pos;
 
-    int array_len;
+  int array_len;
 } Type;

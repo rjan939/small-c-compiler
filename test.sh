@@ -8,7 +8,7 @@ assert() {
   ./tmp
   actual="$?"
 
-  if [ "$actual" = "$expected" ]; then
+  if [ "$actual" = "$expected" ]; then 
     echo "$input => $actual"
   else
     echo "$input => $expected expected, but got $actual"
@@ -27,4 +27,4 @@ assert 10 '-10+20'
 assert 10 '- -10'
 assert 10 '- - +10'
 
-echo OK
+echo EVERYTHING GOOD
