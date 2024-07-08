@@ -15,4 +15,4 @@ test: $(TARGET)
 clean:
 	rm -f main *.o *~ tmp*
 
-.PHONY: test clean
+auto: test clean
