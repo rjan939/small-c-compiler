@@ -12,23 +12,48 @@ static void error(char *fmt, ...) {
   exit(1);
 }
 
+// Reports error location and then exits
+static void verror_at(char *location, char *fmt, va_list argument_pointer) {
+  int position = location - current_input;
+  fprintf(stderr, "%s\n", current_input);
+  fprintf(stderr, "%*s", position, "");
+  fprintf(stderr, "^ ");
+  vfprintf(stderr, fmt, argument_pointer);
+  fprintf(stderr, "\n");
+  exit(1);
+}
+
+static void error_at(char *location, char *fmt, ...) {
+  va_list argument_pointer;
+  va_start(argument_pointer, fmt);
+  verror_at(location, fmt, argument_pointer);
+}
+
+static void error_tok(Token *token, char *fmt, ...) {
+  va_list argument_pointer;
+  va_start(argument_pointer, fmt);
+  verror_at(token->loc, fmt, argument_pointer);
+}
+
 static bool equal(Token *token, char *op) {
   return memcmp(token->loc, op, token->len) == 0 && op[token->len] == '\0';
 }
 
 static Token *skip(Token *token, char *s) {
-  if (!equal(token, s)) error("expected '%s'", s);
+  if (!equal(token, s))
+    error_tok(token, "expected '%s'", s);
   return token->next;
 }
 
 int get_number(Token *token) {
-  if (token->type != T_NUM) error("expected a number");
+  if (token->type != T_NUM) error_tok(token, "expected a number");
   return token->val;
 }
 
 
 static Token *new_token(TokenType type, char *start, char *end) {
   Token *token = calloc(1, sizeof(Token));
+  if (token == NULL) error("not enough memory in system");
   token->type = type;
   token->loc = start;
   token->len = end - start;
@@ -75,7 +100,7 @@ static Token *tokenize(void) {
       p += punct_len;
       continue;
     }
-    error("invalid token");
+    error_at(p, "invalid token");
   }
   cur = cur->next = new_token(T_EOF, p, p);
   return head.next;
@@ -192,7 +217,7 @@ static Node *primary(Token **rest, Token* token) {
     *rest = token->next;
     return node;
   } 
-  error("expected an expression");
+  error_tok(token, "expected an expression");
   return NULL; // It will exit before here
 }
 
@@ -255,7 +280,7 @@ int main(int argc, char **argv) {
   Node *node = expr(&token, token);
 
   if (token->type != T_EOF) {
-    error("extra token");
+    error_tok(token, "extra token");
   }
 
   printf("  .globl main\n");
