@@ -78,7 +78,8 @@ typedef enum {
   ND_ADD, // +
   ND_SUB, // -
   ND_MUL, // *
-  ND_DIV, // / 
+  ND_DIV, // /
+  ND_NEG, // unary -
   ND_NUM, // Integer
 } NodeType;
 
@@ -92,6 +93,7 @@ typedef struct Node {
 
 static Node *expr(Token **rest, Token *token);
 static Node *mul(Token **rest, Token *token);
+static Node *unary(Token **rest, Token *token);
 static Node *primary(Token **rest, Token *token);
 
 static Node *new_node(NodeType type) {
@@ -110,6 +112,12 @@ static Node *new_binary(NodeType type, Node *left, Node *right) {
 static Node *new_num(int val) {
   Node *node = new_node(ND_NUM);
   node->val = val;
+  return node;
+}
+
+static Node *new_unary(NodeType type, Node *expr) {
+  Node *node = new_node(type);
+  node->left = expr;
   return node;
 }
 
@@ -133,23 +141,32 @@ static Node *expr(Token **rest, Token *token) {
   }
 }
 
-// mul = primary ("*" primary | "/" primary)*
+// mul = unary ("*" unary | "/" unary)*
 static Node *mul(Token **rest, Token *token) {
-  Node *node = primary(&token, token);
+  Node *node = unary(&token, token); 
+
   for (;;) {
     if (equal(token, "*")) {
-      node = new_binary(ND_MUL, node, primary(&token, token->next));
+      node = new_binary(ND_MUL, node, unary(&token, token->next));
       continue;
     }
 
     if (equal(token, "/")) {
-      node = new_binary(ND_DIV, node, primary(&token, token->next));
+      node = new_binary(ND_DIV, node, unary(&token, token->next));
       continue;
     }
 
     *rest = token;
     return node;
   }
+}
+
+// unary = ("+" | "-") unary 
+//       | primary
+static Node *unary(Token **rest, Token *token) {
+  if (equal(token, "+")) return unary(rest, token->next);
+  if (equal(token, "-")) return new_unary(ND_NEG, unary(rest, token->next));
+  return primary(rest, token);
 }
 
 static Node *primary(Token **rest, Token* token) {
@@ -183,11 +200,17 @@ static void pop(char *arg) {
 }
 
 static void gen_expr(Node *node) {
-  if (node->type == ND_NUM) {
-    printf("  mov $%d, %%rax\n", node->val);
-    return;
+  switch (node->type) {
+    case ND_NUM:
+      printf("  mov $%d, %%rax\n", node->val);
+      return;
+    case ND_NEG:
+      gen_expr(node->left);
+      printf("  neg %%rax\n");
+      return;
+    default:
   }
-
+  
   gen_expr(node->right);
   push();
   gen_expr(node->left);
