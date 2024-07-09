@@ -1,3 +1,8 @@
+// Open_memstream is  POSIX function and its declaration isn't visible in the other program
+// https://stackoverflow.com/questions/14862513/open-memstream-warning-pointer-from-integer-without-a-cast
+#define _POSIX_C_SOURCE 200809L
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -17,7 +22,6 @@ typedef struct File {
 
 
 File *new_file(char* name, int file_num, char *contents);
-//static char *read_file(char* path);
 
 typedef struct Token Token;
 typedef struct Type Type;
@@ -35,21 +39,17 @@ typedef enum TokenType {
 typedef struct Token {
   TokenType type;
   Token *next;
-  int64_t val;
-  long double fval;
+  int val;
   char *loc;
   int len;
-  Type *ty;
-  char *str;
-
-  File *file;
-  char *filename;
-  int line_num;
-  int line_delta;
-  bool at_beginning;
-  bool follows_space;
-  Token *origin;
 } Token;
+
+void error(char *fmt, ...);
+void error_at(char *location, char *fmt, ...);
+void error_tok(Token *token, char *fmt, ...);
+bool equal(Token *token, char *op);
+Token *skip(Token *token, char *op);
+Token *tokenize(char *input);
 
 typedef struct Type {
   TokenType type;
@@ -66,3 +66,34 @@ typedef struct Type {
 
   int array_len;
 } Type;
+
+
+// parser.c
+
+typedef enum {
+  ND_ADD, // +
+  ND_SUB, // -
+  ND_MUL, // *
+  ND_DIV, // /
+  ND_EQ, // --
+  ND_NE, // !=
+  ND_LT, // < or >
+  ND_LE, // <= or >=
+  ND_NEG, // unary -
+  ND_NUM, // Integer
+} NodeType;
+
+// AST Node type
+typedef struct Node {
+  NodeType type; // Type of Node
+  struct Node *left; // left-side of AST
+  struct Node *right; // right-side of AST
+  int val; // Only used if type == ND_NUM
+} Node;
+
+Node *parse(Token *token);
+
+// asmgen.c
+
+void generate_asm(Node *node);
+

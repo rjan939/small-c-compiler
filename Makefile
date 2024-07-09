@@ -1,15 +1,18 @@
-CFLAGS= -Wall -Werror -g
+CFLAGS=-std=c11 -g -fno-common
 
-CC = gcc
+SRCS = $(wildcard *.c) 
 
-TARGET = main
+OBJS = $(SRCS:.c=.o)
 
-OBJS = main.o
+main : $(OBJS)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
-$(TARGET) : $(OBJS)
-	$(CC) $(CFLAGS) -o $(TARGET) $(OBJS) $(LDFLAGS)
+temp: main.o
+	$(CC) $(CFLAGS) -o main main.o
 
-test: $(TARGET)
+$(OBJS): token.h
+
+test: main
 	./test.sh
 
 clean:
