@@ -7,9 +7,6 @@ OBJS = $(SRCS:.c=.o)
 main : $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
-temp: main.o
-	$(CC) $(CFLAGS) -o main main.o
-
 $(OBJS): token.h
 
 test: main

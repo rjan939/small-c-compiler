@@ -13,6 +13,7 @@ void error(char *fmt, ...) {
   va_start(argument_pointer, fmt);
   vfprintf(stderr, fmt, argument_pointer);
   fprintf(stderr, "\n");
+  va_end(argument_pointer);
   exit(1);
 }
 
@@ -24,6 +25,7 @@ void verror_at(char *location, char *fmt, va_list argument_pointer) {
   fprintf(stderr, "^ ");
   vfprintf(stderr, fmt, argument_pointer);
   fprintf(stderr, "\n");
+  va_end(argument_pointer);
   exit(1);
 }
 
@@ -49,8 +51,32 @@ Token *skip(Token *token, char *s) {
   return token->next;
 }
 
+static Token *new_token(TokenType type, char *start, char *end) {
+  Token *token = calloc(1, sizeof(Token));
+  if (token == NULL) {
+    error("not enough memory in system");
+  }
 
-Token *tokenize(File *file) {
+  token->type = type;
+  token->loc = start;
+  token->len = end - start;
+  return token;
+}
+
+static bool startswith(char *p, char *q) {
+  return strncmp(p, q, strlen(q)) == 0;
+}
+
+static int get_punct_length(char *p) {
+  if (startswith(p, "==") || startswith(p, "!=") ||
+      startswith(p, "<=") || startswith(p, ">="))
+    return 2;
+
+  return ispunct(*p) ? 1 : 0;
+}
+
+
+Token *tokenized(File *file) {
   current_file = file;
   char *content = file->contents;
  

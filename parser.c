@@ -1,4 +1,4 @@
-#include <token.h>
+#include "token.h"
 
 
 static Node *expr(Token **rest, Token *token);
@@ -156,7 +156,7 @@ static Node *primary(Token **rest, Token* token) {
 
 Node *parse(Token *token) {
   Node *node = expr(&token, token);
-  if (token->kind != T_EOF)
-    error_tok(tok, "extra token");
+  if (token->type != T_EOF)
+    error_tok(token, "");
   return node;
 }

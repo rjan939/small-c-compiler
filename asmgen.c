@@ -1,4 +1,4 @@
-#include <token.h>
+#include "token.h"
 
 // Code generator
 static int depth;
