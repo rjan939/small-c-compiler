@@ -67,13 +67,23 @@ static void gen_expr(Node *node) {
   error("invalid expression");
 }
 
-void generate_asm(Node *node) {
+static void gen_statement(Node *node) {
+  if (node->type == ND_STATEMENT) {
+    gen_expr(node->left);
+    return;
+  }
+
+  error("invalid statement");
+}
+
+void gen_asm(Node *node) {
   printf("  .globl main\n");
   printf("main:\n");
 
-  gen_expr(node);
+  for (Node *n = node; n; n = n->next) {
+    gen_statement(n);
+    assert(depth == 0);
+  }
 
   printf("  ret\n");
-
-  assert(depth==0);
 }

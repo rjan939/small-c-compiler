@@ -7,6 +7,6 @@ int main(int argc, char **argv) {
   Token *token = tokenize(argv[1]);
   Node *node = parse(token);
 
-  generate_asm(node);
+  gen_asm(node);
   return 0;
 }

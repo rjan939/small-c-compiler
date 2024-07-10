@@ -76,17 +76,19 @@ typedef enum {
   ND_SUB, // -
   ND_MUL, // *
   ND_DIV, // /
+  ND_NEG, // unary -
   ND_EQ, // --
   ND_NE, // !=
   ND_LT, // < or >
   ND_LE, // <= or >=
-  ND_NEG, // unary -
+  ND_STATEMENT, // Expression statement ";"
   ND_NUM, // Integer
 } NodeType;
 
 // AST Node type
 typedef struct Node {
   NodeType type; // Type of Node
+  struct Node *next; // Next Node
   struct Node *left; // left-side of AST
   struct Node *right; // right-side of AST
   int val; // Only used if type == ND_NUM
@@ -96,5 +98,7 @@ Node *parse(Token *token);
 
 // asmgen.c
 
-void generate_asm(Node *node);
+void gen_asm(Node *node);
+
+void free_memory(Node *node);
 

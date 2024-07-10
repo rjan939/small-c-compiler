@@ -2,6 +2,7 @@
 
 
 static Node *expr(Token **rest, Token *token);
+static Node *expr_statement(Token **rest, Token *token);
 static Node *equality(Token **rest, Token *token);
 static Node *relational(Token **rest, Token *token);
 static Node *add(Token **rest, Token *token);
@@ -34,7 +35,17 @@ static Node *new_unary(NodeType type, Node *expr) {
   return node;
 }
 
+// stmt = expr->stmt
+static Node *statement(Token **rest, Token *token) {
+  return expr_statement(rest, token);
+}
 
+// expr-statement = expr ";"
+static Node *expr_statement(Token **rest, Token *token) {
+  Node *node = new_unary(ND_STATEMENT, expr(&token, token));
+  *rest = skip(token, ";");
+  return node;
+}
 
 // expr = equality
 static Node *expr(Token **rest, Token *token) {
@@ -154,9 +165,12 @@ static Node *primary(Token **rest, Token* token) {
   return NULL; // It will exit before here
 }
 
+// program = statement*
 Node *parse(Token *token) {
-  Node *node = expr(&token, token);
-  if (token->type != T_EOF)
-    error_tok(token, "");
-  return node;
+  Node head = {};
+  Node *curr = &head;
+  while (token->type != T_EOF) {
+    curr = curr->next = statement(&token, token);
+  }
+  return head.next;
 }
