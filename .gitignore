@@ -3,4 +3,4 @@
 tmp*
 a.out
 test.c
-tmp.s
+main
