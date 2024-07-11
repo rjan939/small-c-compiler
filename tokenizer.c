@@ -41,6 +41,18 @@ void error_tok(Token *token, char *fmt, ...) {
   verror_at(token->loc, fmt, argument_pointer);
 }
 
+
+void free_token(Token *token) {
+  if (!token) return;
+  free_token(token->next);
+  free(token);
+}
+
+void free_memory(Token *token, Node *node) {
+  free_token(token);
+  free(node);
+}
+
 bool equal(Token *token, char *op) {
   return memcmp(token->loc, op, token->len) == 0 && op[token->len] == '\0';
 }
@@ -115,6 +127,14 @@ Token *tokenize(char *p) {
       cur->len = p - q;
       continue;
     }
+
+    // Identifier 
+    if ('a' <= *p && *p <= 'z') {
+      cur = cur->next = new_token(T_IDENT, p, p + 1);
+      p++;
+      continue;
+    }
+
     // Punctuator
     int punct_len = get_punct_length(p);
     if (punct_len) {

@@ -13,6 +13,8 @@ static void pop(char *arg) {
   depth--;
 }
 
+
+
 static void gen_expr(Node *node) {
   switch (node->type) {
     case ND_NUM:
@@ -21,6 +23,17 @@ static void gen_expr(Node *node) {
     case ND_NEG:
       gen_expr(node->left);
       printf("  neg %%rax\n");
+      return;
+    case ND_VAR:
+      // calcalate address of node
+      printf("  mov (%%rax), %%rax\n");
+      return;
+    case ND_ASSIGN:
+      // calculate addreess of left node 
+      push();
+      // calculate address of right nodee
+      pop("%rdi");
+      printf("  mov %%rax, (%%rdi)\n");
       return;
     default:
   }

@@ -8,5 +8,6 @@ int main(int argc, char **argv) {
   Node *node = parse(token);
 
   gen_asm(node);
+  free_memory(token, node);
   return 0;
 }

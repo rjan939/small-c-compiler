@@ -16,6 +16,14 @@ static Node *new_node(NodeType type) {
   return node;
 }
 
+void free_node(Node *node) {
+  if (!node) return;
+  free_node(node->left);
+  free_node(node->right);
+  free(node);
+}
+
+
 static Node *new_binary(NodeType type, Node *left, Node *right) {
   Node *node = new_node(type);
   node->left = left;

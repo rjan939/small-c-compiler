@@ -81,7 +81,9 @@ typedef enum {
   ND_NE, // !=
   ND_LT, // < or >
   ND_LE, // <= or >=
+  ND_ASSIGN, // =
   ND_STATEMENT, // Expression statement ";"
+  ND_VAR, // Variable
   ND_NUM, // Integer
 } NodeType;
 
@@ -100,5 +102,12 @@ Node *parse(Token *token);
 
 void gen_asm(Node *node);
 
-void free_memory(Node *node);
+
+// Memory management
+// When exiting the program, OS frees automatically
+void free_node(Node *node); 
+
+void free_token(Token *token);
+
+void free_memory(Token *token, Node *node);
 
