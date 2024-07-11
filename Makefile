@@ -14,5 +14,3 @@ test: main
 
 clean:
 	rm -f main *.o *~ tmp*
-
-auto: test clean
