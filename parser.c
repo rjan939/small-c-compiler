@@ -12,6 +12,9 @@ static Node *primary(Token **rest, Token *token);
 
 static Node *new_node(NodeType type) {
   Node* node = calloc(1, sizeof(Node));
+  if (node == NULL) {
+    error("not enough memory in system");
+  }
   node->type = type;
   return node;
 }
