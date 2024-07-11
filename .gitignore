@@ -1,3 +1,6 @@
+*~
+*.o
+tmp*
+a.out
 test.c
-a.exe
 tmp.s
