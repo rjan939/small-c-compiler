@@ -94,6 +94,8 @@ typedef struct Node {
   struct Node *left; // left-side of AST
   struct Node *right; // right-side of AST
   int val; // Only used if type == ND_NUM
+  int offset; // Only used if type == ND_LVAR
+  char name; // Only used if type == ND_LVAR
 } Node;
 
 Node *parse(Token *token);

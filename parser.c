@@ -3,6 +3,7 @@
 
 static Node *expr(Token **rest, Token *token);
 static Node *expr_statement(Token **rest, Token *token);
+static Node *assign(Token **rest, Token *token);
 static Node *equality(Token **rest, Token *token);
 static Node *relational(Token **rest, Token *token);
 static Node *add(Token **rest, Token *token);
@@ -40,6 +41,14 @@ static Node *new_num(int val) {
   return node;
 }
 
+static Node *new_var_node(char name) {
+  Node *node = new_node(ND_VAR);
+  node->name = name;
+  // Calculate absolute address of given node
+  node->offset = (node->name - 'a' + 1) * 8;
+  return node;
+}
+
 static Node *new_unary(NodeType type, Node *expr) {
   Node *node = new_node(type);
   node->left = expr;
@@ -58,9 +67,19 @@ static Node *expr_statement(Token **rest, Token *token) {
   return node;
 }
 
-// expr = equality
+// expr = assign
 static Node *expr(Token **rest, Token *token) {
-  return equality(rest, token);
+  return assign(rest, token);
+}
+
+// assign = equality ("=" assign)?
+static Node *assign(Token **rest, Token *token) {
+  Node *node = equality(&token, token);
+  if (equal(token, "=")) {
+    node = new_binary(ND_ASSIGN, node, assign(&token, token->next));
+  }
+  *rest = token;
+  return node;
 }
 
 // equality = relational ("==" relational | "!=" relational)* 
@@ -158,12 +177,18 @@ static Node *unary(Token **rest, Token *token) {
   return primary(rest, token);
 }
 
-// primary = "(" expr ")" | num
+// primary = "(" expr ")" | ident | num
 static Node *primary(Token **rest, Token* token) {
   // Skip parenthesis(idk how to spell it)
   if (equal(token, "(")) {
     Node *node = expr(&token, token->next);
     *rest = skip(token, ")");
+    return node;
+  }
+
+  if (token->type == T_IDENT) {
+    Node *node = new_var_node(*token->loc);
+    *rest = token->next;
     return node;
   }
 

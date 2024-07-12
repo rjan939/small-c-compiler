@@ -13,8 +13,18 @@ static void pop(char *arg) {
   depth--;
 }
 
+static void gen_address(Node *node) {
+  if (node->type == ND_VAR) {
+    printf("  lea %d(%%rbp), %%rax\n", -node->offset);
+    return;
+  }
 
 
+  error("not a local variable");
+}
+
+
+// Generate assembly code to handle the logic of given node 
 static void gen_expr(Node *node) {
   switch (node->type) {
     case ND_NUM:
@@ -25,13 +35,13 @@ static void gen_expr(Node *node) {
       printf("  neg %%rax\n");
       return;
     case ND_VAR:
-      // calcalate address of node
+      gen_address(node);
       printf("  mov (%%rax), %%rax\n");
       return;
     case ND_ASSIGN:
-      // calculate addreess of left node 
+      gen_address(node->left);
       push();
-      // calculate address of right nodee
+      gen_expr(node->right);
       pop("%rdi");
       printf("  mov %%rax, (%%rdi)\n");
       return;
@@ -93,10 +103,21 @@ void gen_asm(Node *node) {
   printf("  .globl main\n");
   printf("main:\n");
 
+  // Setting up stack frame
+  // %rbp is the base pointer register in this implementation
+  size_t MAX_SPACE_FOR_SINGLE_LETTER_VARS = ('z' - 'a' + 1) * 8;
+  printf("  push %%rbp\n"); // Save caller's base pointer
+  printf("  mov %%rsp, %%rbp\n"); // Set the base pointer to the current stack pointer
+  printf("  sub $208, %%rsp\n"); // Allocate space 
+
+
   for (Node *n = node; n; n = n->next) {
     gen_statement(n);
     assert(depth == 0);
   }
 
+  // Tear down stack frame
+  printf("  mov %%rbp, %%rsp\n"); // Reset stack pointer
+  printf("  pop %%rbp\n"); // Restore caller's base pointer
   printf("  ret\n");
 }
