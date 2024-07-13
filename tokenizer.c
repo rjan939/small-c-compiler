@@ -48,11 +48,6 @@ void free_token(Token *token) {
   free(token);
 }
 
-void free_memory(Token *token, Node *node) {
-  free_token(token);
-  free(node);
-}
-
 bool equal(Token *token, char *op) {
   return memcmp(token->loc, op, token->len) == 0 && op[token->len] == '\0';
 }
@@ -79,6 +74,17 @@ static bool startswith(char *p, char *q) {
   return strncmp(p, q, strlen(q)) == 0;
 }
 
+// Returns true if c is valid as the first character of an identifier 
+static bool is_valid_ident_first_character(char c) {
+  return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_';
+}
+
+// Returns true if c is valid as a non-first character of an identifier
+static bool is_valid_ident_character(char c) {
+  return is_valid_ident_first_character(c) || ('0' <= c && c <= '9');
+}
+
+// Returns length of punctuator token from p
 static int get_punct_length(char *p) {
   if (startswith(p, "==") || startswith(p, "!=") ||
       startswith(p, "<=") || startswith(p, ">="))
@@ -129,9 +135,12 @@ Token *tokenize(char *p) {
     }
 
     // Identifier 
-    if ('a' <= *p && *p <= 'z') {
-      cur = cur->next = new_token(T_IDENT, p, p + 1);
-      p++;
+    if (is_valid_ident_first_character(*p)) {
+      char *start = p;
+      do {
+        p++;
+      } while (is_valid_ident_character(*p));
+      cur = cur->next = new_token(T_IDENT, start, p);
       continue;
     }
 

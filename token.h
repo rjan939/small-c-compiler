@@ -12,6 +12,10 @@
 #include <string.h>
 #include <stdarg.h>
 
+typedef struct Node Node;
+
+// tokenize.c 
+
 typedef struct File {
   char *name; // Original filename
   int unique_id; // Unique file num
@@ -71,6 +75,21 @@ typedef struct Type {
 
 // parser.c
 
+// Local Variable
+typedef struct LVar {
+  struct LVar *next; // Next variable or NULL
+  char *name;
+  int len;
+  int offset; // Offset from %rbp
+} LVar;
+
+// Function storage
+typedef struct Function {
+  Node *body;
+  LVar *locals;
+  int stack_size;
+} Function;
+
 typedef enum {
   ND_ADD, // +
   ND_SUB, // -
@@ -90,19 +109,18 @@ typedef enum {
 // AST Node type
 typedef struct Node {
   NodeType type; // Type of Node
-  struct Node *next; // Next Node
-  struct Node *left; // left-side of AST
-  struct Node *right; // right-side of AST
+  Node *next; // Next Node
+  Node *left; // left-side of AST
+  Node *right; // right-side of AST
   int val; // Only used if type == ND_NUM
-  int offset; // Only used if type == ND_LVAR
-  char name; // Only used if type == ND_LVAR
+  LVar *var;
 } Node;
 
-Node *parse(Token *token);
+Function *parse(Token *token);
 
 // asmgen.c
 
-void gen_asm(Node *node);
+void gen_asm(Function *program);
 
 
 // Memory management
@@ -111,5 +129,7 @@ void free_node(Node *node);
 
 void free_token(Token *token);
 
-void free_memory(Token *token, Node *node);
+void free_lvar(LVar *locals);
+
+void free_memory(Token *token, Function *program);
 

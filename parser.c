@@ -1,5 +1,7 @@
 #include "token.h"
 
+// Local variables in the parser
+LVar *locals;
 
 static Node *expr(Token **rest, Token *token);
 static Node *expr_statement(Token **rest, Token *token);
@@ -10,6 +12,14 @@ static Node *add(Token **rest, Token *token);
 static Node *mul(Token **rest, Token *token);
 static Node *unary(Token **rest, Token *token);
 static Node *primary(Token **rest, Token *token);
+
+// Find a local variable based on name
+static LVar *find_var(Token *token) {
+  for (LVar *var = locals; var; var = var->next)
+    if (strlen(var->name) == token->len && !strncmp(token->loc, var->name, token->len))
+      return var;
+  return NULL;
+}
 
 static Node *new_node(NodeType type) {
   Node* node = calloc(1, sizeof(Node));
@@ -41,13 +51,31 @@ static Node *new_num(int val) {
   return node;
 }
 
-static Node *new_var_node(char name) {
+static Node *new_var_node(LVar *var) {
   Node *node = new_node(ND_VAR);
-  node->name = name;
-  // Calculate absolute address of given node
-  node->offset = (node->name - 'a' + 1) * 8;
+  node->var = var;
   return node;
 }
+
+static LVar *new_lvar(char *name) {
+  LVar *var = calloc(1, sizeof(LVar));
+  if (var == NULL) {
+    error("not enough memory in system");
+  }
+
+  var->name = name;
+  var->next = locals;
+  var->len = strlen(name);
+  locals = var;
+  return var;
+}
+
+void free_lvar(LVar *locals) {
+  if (!locals) return;
+  free_lvar(locals->next);
+  free(locals);
+}
+
 
 static Node *new_unary(NodeType type, Node *expr) {
   Node *node = new_node(type);
@@ -94,7 +122,7 @@ static Node *equality(Token **rest, Token *token) {
     if (equal(token, "!=")) {
       node = new_binary(ND_NE, node, relational(&token, token->next));
       continue;
-    }
+  }
 
     *rest = token;
     return node;
@@ -187,9 +215,12 @@ static Node *primary(Token **rest, Token* token) {
   }
 
   if (token->type == T_IDENT) {
-    Node *node = new_var_node(*token->loc);
+    // Verify that there is not a variable already created with this name
+    LVar *var = find_var(token);
+    if (!var) 
+      var = new_lvar(strndup(token->loc, token->len));
     *rest = token->next;
-    return node;
+    return new_var_node(var);
   }
 
   if (token->type == T_NUM) {
@@ -202,11 +233,16 @@ static Node *primary(Token **rest, Token* token) {
 }
 
 // program = statement*
-Node *parse(Token *token) {
+Function *parse(Token *token) {
   Node head = {};
   Node *curr = &head;
   while (token->type != T_EOF) {
     curr = curr->next = statement(&token, token);
   }
-  return head.next;
+
+  Function *program = calloc(1, sizeof(Function));
+  if (program == NULL) error("not enough memory in system");
+  program->body = head.next;
+  program->locals = locals;
+  return program;
 }

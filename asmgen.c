@@ -13,9 +13,15 @@ static void pop(char *arg) {
   depth--;
 }
 
+// Round up 'n' to the nearest multiple of 'align'. For example,
+// align_to(5, 8) returns 8 and align_to(11, 8) returns 16
+static int align_to(int n, int align) {
+  return (n + align - 1) / align * align;
+}
+
 static void gen_address(Node *node) {
   if (node->type == ND_VAR) {
-    printf("  lea %d(%%rbp), %%rax\n", -node->offset);
+    printf("  lea %d(%%rbp), %%rax\n", node->var->offset);
     return;
   }
 
@@ -99,19 +105,30 @@ static void gen_statement(Node *node) {
   error("invalid statement");
 }
 
-void gen_asm(Node *node) {
+// Source: https://stackoverflow.com/questions/70778878/how-do-programs-know-how-much-space-to-allocate-for-local-variables-on-the-stack
+// Assigns offsets to local variables for memory allocation
+static void assign_lvar_offsets(Function *program) {
+  int offset = 0;
+  for (LVar *var = program->locals; var; var = var->next) {
+    offset += 8;
+    var->offset = -offset;
+  }
+  program->stack_size = align_to(offset, 16);
+}
+
+void gen_asm(Function *program) {
+  assign_lvar_offsets(program);
   printf("  .globl main\n");
   printf("main:\n");
 
   // Setting up stack frame
   // %rbp is the base pointer register in this implementation
-  size_t MAX_SPACE_FOR_SINGLE_LETTER_VARS = ('z' - 'a' + 1) * 8;
   printf("  push %%rbp\n"); // Save caller's base pointer
   printf("  mov %%rsp, %%rbp\n"); // Set the base pointer to the current stack pointer
-  printf("  sub $208, %%rsp\n"); // Allocate space 
+  printf("  sub $%d, %%rsp\n", program->stack_size); // Allocate space 
 
 
-  for (Node *n = node; n; n = n->next) {
+  for (Node *n = program->body; n; n = n->next) {
     gen_statement(n);
     assert(depth == 0);
   }

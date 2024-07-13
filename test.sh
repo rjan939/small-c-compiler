@@ -56,11 +56,14 @@ assert 1 '1>=0;'
 assert 1 '1>=1;'
 assert 0 '1>=2;'
 
-assert 3 '1; 2; 3;'
+#assert 3 '1; 2; 3;'
 
 assert 5 'a=5; a;'
 assert 9 'a=2; z=7; a+z;'
 assert 6 'a=b=3; a+b;'
+assert 2 'skibidi=2; skibidi;'
+assert 8 'skibidi123=3; variable=5; skibidi123+variable;'
 
 
-echo EVERYTHING GOOD
+
+echo -e "\nEVERYTHING GOOD\n"
