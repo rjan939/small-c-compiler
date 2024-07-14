@@ -111,6 +111,14 @@ Token *tokenized(File *file) {
   return NULL;
 }
 
+static void identify_keywords(Token *token) {
+  for (Token *curr = token; curr->type != T_EOF; curr = curr->next) {
+    if (equal(curr, "return")) {
+      curr->type = T_KEYWORD;
+    }
+  }
+}
+
 // Tokenize 'current_file' and returns new tokens
 Token *tokenize(char *p) {
   current_input = p;
@@ -141,6 +149,9 @@ Token *tokenize(char *p) {
         p++;
       } while (is_valid_ident_character(*p));
       cur = cur->next = new_token(T_IDENT, start, p);
+      if (equal(cur, "return")) {
+        cur->type = T_KEYWORD;
+      }
       continue;
     }
 
@@ -154,6 +165,7 @@ Token *tokenize(char *p) {
     error_at(p, "invalid token");
   }
   cur = cur->next = new_token(T_EOF, p, p);
+  //identify_keywords(head.next);
   return head.next;
 }
   

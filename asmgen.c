@@ -97,9 +97,15 @@ static void gen_expr(Node *node) {
 }
 
 static void gen_statement(Node *node) {
-  if (node->type == ND_STATEMENT) {
-    gen_expr(node->left);
-    return;
+  switch (node->type) {
+    case ND_RETURN:
+      gen_expr(node->left);
+      printf(" jmp .L.return\n");
+      return;
+    case ND_STATEMENT:
+      gen_expr(node->left);
+      return;
+    default:
   }
 
   error("invalid statement");
@@ -132,6 +138,8 @@ void gen_asm(Function *program) {
     gen_statement(n);
     assert(depth == 0);
   }
+
+  printf(".L.return:\n");
 
   // Tear down stack frame
   printf("  mov %%rbp, %%rsp\n"); // Reset stack pointer

@@ -101,6 +101,7 @@ typedef enum {
   ND_LT, // < or >
   ND_LE, // <= or >=
   ND_ASSIGN, // =
+  ND_RETURN, // "return"
   ND_STATEMENT, // Expression statement ";"
   ND_VAR, // Variable
   ND_NUM, // Integer

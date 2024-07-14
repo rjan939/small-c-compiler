@@ -83,8 +83,14 @@ static Node *new_unary(NodeType type, Node *expr) {
   return node;
 }
 
-// stmt = expr->stmt
+// stmt = "return" expr ";" 
+//        | expr->stmt
 static Node *statement(Token **rest, Token *token) {
+  if (equal(token, "return")) {
+    Node *node = new_unary(ND_RETURN, expr(&token, token->next));
+    *rest = skip(token, ";");
+    return node;
+  }
   return expr_statement(rest, token);
 }
 
