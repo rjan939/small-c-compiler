@@ -3,6 +3,7 @@
 // Local variables in the parser
 LVar *locals;
 
+static Node *compound_statement(Token **rest, Token *token);
 static Node *expr(Token **rest, Token *token);
 static Node *expr_statement(Token **rest, Token *token);
 static Node *assign(Token **rest, Token *token);
@@ -84,6 +85,7 @@ static Node *new_unary(NodeType type, Node *expr) {
 }
 
 // stmt = "return" expr ";" 
+//        | "{" compound-statement
 //        | expr->stmt
 static Node *statement(Token **rest, Token *token) {
   if (equal(token, "return")) {
@@ -91,7 +93,24 @@ static Node *statement(Token **rest, Token *token) {
     *rest = skip(token, ";");
     return node;
   }
+
+  if (equal(token, "{"))
+    return compound_statement(rest, token->next);
+
   return expr_statement(rest, token);
+}
+
+// compound-stmt = stmt* "}"
+static Node *compound_statement(Token **rest, Token* token) {
+  Node head = {};
+  Node *cur = &head;
+  while (!equal(token, "}"))
+    cur = cur->next = statement(&token, token);
+
+  Node *node = new_node(ND_BLOCK);
+  node->body = head.next;
+  *rest = token->next;
+  return node;
 }
 
 // expr-statement = expr ";"
@@ -240,15 +259,12 @@ static Node *primary(Token **rest, Token* token) {
 
 // program = statement*
 Function *parse(Token *token) {
-  Node head = {};
-  Node *curr = &head;
-  while (token->type != T_EOF) {
-    curr = curr->next = statement(&token, token);
-  }
-
+  token = skip(token, "{");
+  
   Function *program = calloc(1, sizeof(Function));
-  if (program == NULL) error("not enough memory in system");
-  program->body = head.next;
+  if (program == NULL) 
+    error("not enough memory in system");
+  program->body = compound_statement(&token, token);
   program->locals = locals;
   return program;
 }

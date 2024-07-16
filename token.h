@@ -102,6 +102,7 @@ typedef enum {
   ND_LE, // <= or >=
   ND_ASSIGN, // =
   ND_RETURN, // "return"
+  ND_BLOCK, // {...}
   ND_STATEMENT, // Expression statement ";"
   ND_VAR, // Variable
   ND_NUM, // Integer
@@ -112,9 +113,11 @@ typedef struct Node {
   NodeType type; // Type of Node
   Node *next; // Next Node
   Node *left; // left-side of AST
-  Node *right; // right-side of AST
+  Node *right; // right-side of AST 
+  // ND_BLOCK
+  Node *body;
   int val; // Only used if type == ND_NUM
-  LVar *var;
+  LVar *var; // Only used if type == ND_VAR
 } Node;
 
 Function *parse(Token *token);

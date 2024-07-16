@@ -98,6 +98,10 @@ static void gen_expr(Node *node) {
 
 static void gen_statement(Node *node) {
   switch (node->type) {
+    case ND_BLOCK:
+      for (Node *n = node->body; n; n = n->next)
+        gen_statement(n);
+      return;
     case ND_RETURN:
       gen_expr(node->left);
       printf(" jmp .L.return\n");
@@ -134,10 +138,8 @@ void gen_asm(Function *program) {
   printf("  sub $%d, %%rsp\n", program->stack_size); // Allocate space 
 
 
-  for (Node *n = program->body; n; n = n->next) {
-    gen_statement(n);
-    assert(depth == 0);
-  }
+  gen_statement(program->body);
+  assert(depth == 0);
 
   printf(".L.return:\n");
 
