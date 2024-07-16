@@ -104,6 +104,7 @@ typedef enum {
   ND_RETURN, // "return"
   ND_BLOCK, // {...}
   ND_STATEMENT, // Expression statement ";"
+  ND_NULL_STATEMENT, // ";" with no actual expression or declaration
   ND_VAR, // Variable
   ND_NUM, // Integer
 } NodeType;

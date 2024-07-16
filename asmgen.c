@@ -98,6 +98,8 @@ static void gen_expr(Node *node) {
 
 static void gen_statement(Node *node) {
   switch (node->type) {
+    case ND_NULL_STATEMENT:
+      return;
     case ND_BLOCK:
       for (Node *n = node->body; n; n = n->next)
         gen_statement(n);

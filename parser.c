@@ -88,6 +88,10 @@ static Node *new_unary(NodeType type, Node *expr) {
 //        | "{" compound-statement
 //        | expr->stmt
 static Node *statement(Token **rest, Token *token) {
+  if (equal(token, ";")) {
+    *rest = token->next;
+    return new_node(ND_NULL_STATEMENT);
+  }
   if (equal(token, "return")) {
     Node *node = new_unary(ND_RETURN, expr(&token, token->next));
     *rest = skip(token, ";");
