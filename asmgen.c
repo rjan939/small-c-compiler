@@ -3,7 +3,12 @@
 // Code generator
 static int depth;
 
-static void push() {
+static int count(void) {
+  static int i = 1;
+  return i++; 
+}
+
+static void push(void) {
   printf("  push %%rax\n");
   depth++;
 }
@@ -98,6 +103,18 @@ static void gen_expr(Node *node) {
 
 static void gen_statement(Node *node) {
   switch (node->type) {
+    case ND_IF:
+      int c = count();
+      gen_expr(node->cond);
+      printf("  cmp $0, %%rax\n");
+      printf("  je  .L.else.%d\n", c);
+      gen_statement(node->then);
+      printf("  jmp .L.end.%d\n", c);
+      printf(".L.else.%d:\n", c);
+      if (node->els)
+        gen_statement(node->els);
+      printf(".L.end.%d:\n", c);
+      return;
     case ND_NULL_STATEMENT:
       return;
     case ND_BLOCK:

@@ -102,6 +102,7 @@ typedef enum {
   ND_LE, // <= or >=
   ND_ASSIGN, // =
   ND_RETURN, // "return"
+  ND_IF, // "if" (expr)
   ND_BLOCK, // {...}
   ND_STATEMENT, // Expression statement ";"
   ND_NULL_STATEMENT, // ";" with no actual expression or declaration
@@ -113,8 +114,15 @@ typedef enum {
 typedef struct Node {
   NodeType type; // Type of Node
   Node *next; // Next Node
+  
   Node *left; // left-side of AST
   Node *right; // right-side of AST 
+
+  // "if" statement
+  Node *cond;
+  Node *then;
+  Node *els;
+
   // ND_BLOCK
   Node *body;
   int val; // Only used if type == ND_NUM

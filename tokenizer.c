@@ -111,6 +111,16 @@ Token *tokenized(File *file) {
   return NULL;
 }
 
+static bool is_keyword(Token *token) {
+  static char *keywords[] = {"return", "if", "else"};
+  
+  for (int i = 0; i < sizeof(keywords) / sizeof(*keywords); i++) {
+    if (equal(token, keywords[i]))
+      return true;
+  }
+  return false;
+}
+
 static void identify_keywords(Token *token) {
   for (Token *curr = token; curr->type != T_EOF; curr = curr->next) {
     if (equal(curr, "return")) {

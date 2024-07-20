@@ -69,5 +69,13 @@ assert 1 '{return 1; 2; 3;}'
 assert 3 '{{1; {2;} return 3;}}'
 assert 5 '{ ;;; return 5;}'
 
+assert 3 '{ if (0) return 2; return 3; }'
+assert 3 '{ if (1 - 1) return 2; return 3; }'
+
+assert 69 '{ if (1) return 69; return 4; }'
+assert 69 '{ if (2 - 1) return 69; return 4; }'
+assert 4 '{ if (0) { 1; 2; return 3; } else { return 4; } }'
+assert 3 '{ if (1) { 1; 2; return 3; } else { return 4; } }'
+
 
 echo -e "\nEVERYTHING GOOD\n"

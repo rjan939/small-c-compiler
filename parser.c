@@ -84,7 +84,8 @@ static Node *new_unary(NodeType type, Node *expr) {
   return node;
 }
 
-// stmt = "return" expr ";" 
+// stmt = "return" expr? ";" 
+//        | "if" "(" expr ")" stmt ("else" stmt)?
 //        | "{" compound-statement
 //        | expr->stmt
 static Node *statement(Token **rest, Token *token) {
@@ -95,6 +96,19 @@ static Node *statement(Token **rest, Token *token) {
   if (equal(token, "return")) {
     Node *node = new_unary(ND_RETURN, expr(&token, token->next));
     *rest = skip(token, ";");
+    return node;
+  }
+
+  if (equal(token, "if")) {
+    Node *node = new_node(ND_IF);
+    token = skip(token->next, "(");
+    node->cond = expr(&token, token);
+    token = skip(token, ")");
+    node->then = statement(&token, token);
+
+    if (equal(token, "else"))
+      node->els = statement(&token, token->next);
+    *rest = token;
     return node;
   }
 
