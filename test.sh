@@ -77,5 +77,8 @@ assert 69 '{ if (2 - 1) return 69; return 4; }'
 assert 4 '{ if (0) { 1; 2; return 3; } else { return 4; } }'
 assert 3 '{ if (1) { 1; 2; return 3; } else { return 4; } }'
 
+assert 55 '{i = 0; j = 0; for (i = 0; i <= 10; i = i + 1) j = i + j; return j; }'
+assert 69 '{ for (;;) {return 69;} return 6; }'
+
 
 echo -e "\nEVERYTHING GOOD\n"

@@ -84,15 +84,12 @@ static Node *new_unary(NodeType type, Node *expr) {
   return node;
 }
 
-// stmt = "return" expr? ";" 
+// stmt = "return" expr ";" 
 //        | "if" "(" expr ")" stmt ("else" stmt)?
-//        | "{" compound-statement
+//        | "for" "(" expr-stmt expr? ";" expr? ")" statement
+//        | "{" compound-stmt
 //        | expr->stmt
 static Node *statement(Token **rest, Token *token) {
-  if (equal(token, ";")) {
-    *rest = token->next;
-    return new_node(ND_NULL_STATEMENT);
-  }
   if (equal(token, "return")) {
     Node *node = new_unary(ND_RETURN, expr(&token, token->next));
     *rest = skip(token, ";");
@@ -109,6 +106,24 @@ static Node *statement(Token **rest, Token *token) {
     if (equal(token, "else"))
       node->els = statement(&token, token->next);
     *rest = token;
+    return node;
+  }
+
+  if (equal(token, "for")) {
+    Node *node = new_node(ND_FOR);
+    token = skip(token->next, "(");
+
+    node->init = expr_statement(&token, token);
+
+    if (!equal(token, ";"))
+      node->cond = expr(&token, token);
+    token = skip(token, ";");
+
+    if (!equal(token, ")"))
+      node->inc = expr(&token, token);
+    token = skip(token, ")");
+
+    node->then = statement(rest, token);
     return node;
   }
 
@@ -131,8 +146,12 @@ static Node *compound_statement(Token **rest, Token* token) {
   return node;
 }
 
-// expr-statement = expr ";"
+// expr-statement = expr? ";"
 static Node *expr_statement(Token **rest, Token *token) {
+  if (equal(token, ";")) {
+    *rest = token->next;
+    return new_node(ND_NULL_STATEMENT);
+  }
   Node *node = new_unary(ND_STATEMENT, expr(&token, token));
   *rest = skip(token, ";");
   return node;

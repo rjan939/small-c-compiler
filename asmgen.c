@@ -102,9 +102,10 @@ static void gen_expr(Node *node) {
 }
 
 static void gen_statement(Node *node) {
+  int c;
   switch (node->type) {
     case ND_IF:
-      int c = count();
+      c = count();
       gen_expr(node->cond);
       printf("  cmp $0, %%rax\n");
       printf("  je  .L.else.%d\n", c);
@@ -113,6 +114,21 @@ static void gen_statement(Node *node) {
       printf(".L.else.%d:\n", c);
       if (node->els)
         gen_statement(node->els);
+      printf(".L.end.%d:\n", c);
+      return;
+    case ND_FOR:
+      c = count();
+      gen_statement(node->init);
+      printf(".L.begin.%d:\n", c);
+      if (node->cond) {
+        gen_expr(node->cond);
+        printf("  cmp $0, %%rax\n");
+        printf("  je  .L.end.%d\n", c);
+      }
+      gen_statement(node->then);
+      if (node->inc) 
+        gen_expr(node->inc);
+      printf("  jmp .L.begin.%d\n", c);
       printf(".L.end.%d:\n", c);
       return;
     case ND_NULL_STATEMENT:
