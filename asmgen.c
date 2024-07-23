@@ -118,7 +118,8 @@ static void gen_statement(Node *node) {
       return;
     case ND_FOR:
       c = count();
-      gen_statement(node->init);
+      if (node->init)
+        gen_statement(node->init);
       printf(".L.begin.%d:\n", c);
       if (node->cond) {
         gen_expr(node->cond);

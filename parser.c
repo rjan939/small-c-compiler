@@ -87,6 +87,7 @@ static Node *new_unary(NodeType type, Node *expr) {
 // stmt = "return" expr ";" 
 //        | "if" "(" expr ")" stmt ("else" stmt)?
 //        | "for" "(" expr-stmt expr? ";" expr? ")" statement
+//        | "while" "(" expr ")" stmt
 //        | "{" compound-stmt
 //        | expr->stmt
 static Node *statement(Token **rest, Token *token) {
@@ -123,6 +124,15 @@ static Node *statement(Token **rest, Token *token) {
       node->inc = expr(&token, token);
     token = skip(token, ")");
 
+    node->then = statement(rest, token);
+    return node;
+  }
+
+  if (equal(token, "while")) {
+    Node *node = new_node(ND_FOR);
+    token = skip(token->next, "(");
+    node->cond = expr(&token, token);
+    token = skip(token, ")");
     node->then = statement(rest, token);
     return node;
   }

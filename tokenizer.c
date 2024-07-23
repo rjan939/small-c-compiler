@@ -112,7 +112,7 @@ Token *tokenized(File *file) {
 }
 
 static bool is_keyword(Token *token) {
-  static char *keywords[] = {"return", "if", "else", "for"};
+  static char *keywords[] = {"return", "if", "else", "for", "while"};
   
   for (int i = 0; i < sizeof(keywords) / sizeof(*keywords); i++) {
     if (equal(token, keywords[i]))

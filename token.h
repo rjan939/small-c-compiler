@@ -103,7 +103,7 @@ typedef enum {
   ND_ASSIGN, // =
   ND_RETURN, // "return"
   ND_IF, // "if" (expr)
-  ND_FOR, // "for"
+  ND_FOR, // "for" or "while"
   ND_BLOCK, // {...}
   ND_STATEMENT, // Expression statement ";"
   ND_NULL_STATEMENT, // ";" with no actual expression or declaration
