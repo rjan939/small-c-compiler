@@ -1,3 +1,4 @@
+// This file is a recursive descent parser for C
 #include "token.h"
 
 // Local variables in the parser
@@ -269,11 +270,17 @@ static Node *mul(Token **rest, Token *token) {
   }
 }
 
-// unary = ("+" | "-") unary 
+// unary = ("+" | "-" | "*" | "&") unary 
 //       | primary
 static Node *unary(Token **rest, Token *token) {
-  if (equal(token, "+")) return unary(rest, token->next);
-  if (equal(token, "-")) return new_unary(ND_NEG, unary(rest, token->next));
+  if (equal(token, "+")) 
+    return unary(rest, token->next);
+  if (equal(token, "-")) 
+    return new_unary(ND_NEG, unary(rest, token->next));
+  if (equal(token, "&")) 
+    return new_unary(ND_ADDRESS, unary(rest, token->next));
+  if (equal(token, "*")) 
+    return new_unary(ND_DEREF, unary(rest, token->next));
   return primary(rest, token);
 }
 

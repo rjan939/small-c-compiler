@@ -82,5 +82,16 @@ assert 69 '{ for (;;) {return 69;} return 6; }'
 
 assert 6 '{ i = 0; while (i < 6) { i = i  + 1; } return i; }'
 
+assert 3 '{ x = 3; return *&x; }'
+assert 3 '{ x = 3; y = &x; z = &y; return **z; }'
+# I actually have no idea if this is supposed to work since its technically ub in C
+# Since I cant confirm whether variables are initialized right next to each other on every system
+assert 5 '{ x = 3; y = 5; return *(&x + 8); }'
+assert 3 '{ x = 3; y = 5; return *(&y - 8); }'
+assert 5 '{ x = 3; y = &x; *y = 5; return x; }'
+assert 7 '{ x = 3; y = 5; *(&x + 8) = 7; return y; }'
+assert 7 '{ x = 3; y = 5; *(&y - 8) = 7; return x; }'
+
+
 
 echo -e "\nEVERYTHING GOOD\n"

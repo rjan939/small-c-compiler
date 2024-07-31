@@ -3,6 +3,8 @@
 // Code generator
 static int depth;
 
+static void gen_expr(Node *node);
+
 static int count(void) {
   static int i = 1;
   return i++; 
@@ -25,9 +27,13 @@ static int align_to(int n, int align) {
 }
 
 static void gen_address(Node *node) {
-  if (node->type == ND_VAR) {
-    printf("  lea %d(%%rbp), %%rax\n", node->var->offset);
-    return;
+  switch (node->type) {
+    case ND_VAR: 
+      printf("  lea %d(%%rbp), %%rax\n", node->var->offset);
+      return;
+    case ND_DEREF:
+      gen_expr(node->left);
+      return;
   }
 
 
@@ -48,6 +54,13 @@ static void gen_expr(Node *node) {
     case ND_VAR:
       gen_address(node);
       printf("  mov (%%rax), %%rax\n");
+      return;
+    case ND_DEREF:
+      gen_expr(node->left);
+      printf("  mov (%%rax), %%rax\n");
+      return;
+    case ND_ADDRESS:
+      gen_address(node->left);
       return;
     case ND_ASSIGN:
       gen_address(node->left);

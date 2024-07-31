@@ -101,6 +101,8 @@ typedef enum {
   ND_LT, // < or >
   ND_LE, // <= or >=
   ND_ASSIGN, // =
+  ND_ADDRESS, // unary &
+  ND_DEREF, // unary *
   ND_RETURN, // "return"
   ND_IF, // "if" (expr)
   ND_FOR, // "for" or "while"
