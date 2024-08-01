@@ -5,6 +5,7 @@
 LVar *locals;
 
 static Node *compound_statement(Token **rest, Token *token);
+static Node *statement(Token **rest, Token *token);
 static Node *expr(Token **rest, Token *token);
 static Node *expr_statement(Token **rest, Token *token);
 static Node *assign(Token **rest, Token *token);
@@ -28,7 +29,7 @@ static Node *new_node(NodeType type) {
   if (node == NULL) {
     error("not enough memory in system");
   }
-  node->type = type;
+  node->nodeType = type;
   return node;
 }
 
@@ -148,8 +149,10 @@ static Node *statement(Token **rest, Token *token) {
 static Node *compound_statement(Token **rest, Token* token) {
   Node head = {};
   Node *cur = &head;
-  while (!equal(token, "}"))
+  while (!equal(token, "}")) {
     cur = cur->next = statement(&token, token);
+    add_type(cur);
+  }
 
   Node *node = new_node(ND_BLOCK);
   node->body = head.next;
@@ -232,17 +235,73 @@ static Node *relational(Token **rest, Token *token) {
   }
 }
 
+// In C, '+' operator is overloaded to do pointer arithmetic
+// if p is a pointer, p + n adds not n but sizeof(*p)*n to the value of p,
+// so that p + n points to the location n elements ahead of p
+// scale integer value before adding to a pointer value
+// which is what this function does
+static Node *new_add(Node *left, Node *right, Token *token) {
+  add_type(left);
+  add_type(right);
+
+  // num + num
+  if (is_integer(left->type) && is_integer(right->type))
+    return new_binary(ND_ADD, left, right);
+  
+  if (left->type->base && right->type->base)
+    error_tok(token, "invalid operands");
+  
+  // num + ptr
+  if (!left->type->base && right->type->base) {
+    Node *tmp = left;
+    left = right;
+    right = tmp;
+  }
+
+  // ptr + num
+  right = new_binary(ND_MUL, right, new_num(8));
+  return new_binary(ND_ADD, left, right);
+}
+
+static Node *new_sub(Node *left, Node *right, Token *token) {
+  add_type(left);
+  add_type(right);
+
+  // num - num
+  if (is_integer(left->type) && is_integer(right->type))
+    return new_binary(ND_SUB, left, right);
+  
+  // ptr - num
+  if (left->type->base && is_integer(right->type)) {
+    right = new_binary(ND_MUL, right, new_num(8));
+    add_type(right);
+    Node *node = new_binary(ND_SUB, left, right);
+    node->type = left->type;
+    return node;
+  }
+  
+  // ptr - ptr, which returns how many elements are between the two
+  if (left->type->base && right->type->base) {
+    Node *node = new_binary(ND_SUB, left, right);
+    node->type = ty_int;
+    return new_binary(ND_DIV, node, new_num(8));
+  }
+
+  error_tok(token, "invalid operands");
+}
+
 // add = mul ("+" mul | "-" mul)*
 static Node *add(Token **rest, Token *token) {
   Node *node = mul(&token, token);
   for (;;) {
+    Token *start = token;
     if (equal(token, "+")) {
-      node = new_binary(ND_ADD, node, mul(&token, token->next));
+      node = new_add(node, mul(&token, token->next), start);
       continue;
     }
 
     if (equal(token, "-")) {
-      node = new_binary(ND_SUB, node, mul(&token, token->next));
+      node = new_sub(node, mul(&token, token->next), start);
       continue;
     }
     *rest = token;

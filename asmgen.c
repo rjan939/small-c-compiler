@@ -27,7 +27,7 @@ static int align_to(int n, int align) {
 }
 
 static void gen_address(Node *node) {
-  switch (node->type) {
+  switch (node->nodeType) {
     case ND_VAR: 
       printf("  lea %d(%%rbp), %%rax\n", node->var->offset);
       return;
@@ -43,7 +43,7 @@ static void gen_address(Node *node) {
 
 // Generate assembly code to handle the logic of given node 
 static void gen_expr(Node *node) {
-  switch (node->type) {
+  switch (node->nodeType) {
     case ND_NUM:
       printf("  mov $%d, %%rax\n", node->val);
       return;
@@ -77,7 +77,7 @@ static void gen_expr(Node *node) {
   gen_expr(node->left);
   pop("%rdi");
 
-  switch(node->type) {
+  switch(node->nodeType) {
     case ND_ADD:
       printf("  add %%rdi, %%rax\n");
       return;
@@ -97,13 +97,13 @@ static void gen_expr(Node *node) {
     case ND_LE:
       printf("  cmp %%rdi, %%rax\n");
 
-      if (node->type == ND_EQ) 
+      if (node->nodeType == ND_EQ) 
         printf("  sete %%al\n");
-      else if (node->type == ND_NE) 
+      else if (node->nodeType == ND_NE) 
         printf("  setne %%al\n");
-      else if (node->type == ND_LT) 
+      else if (node->nodeType == ND_LT) 
         printf("  setl %%al\n");
-      else if (node->type == ND_LE)
+      else if (node->nodeType == ND_LE)
         printf("  setle %%al\n");
       
       printf("  movzb %%al, %%rax\n");
@@ -116,7 +116,7 @@ static void gen_expr(Node *node) {
 
 static void gen_statement(Node *node) {
   int c;
-  switch (node->type) {
+  switch (node->nodeType) {
     case ND_IF:
       c = count();
       gen_expr(node->cond);

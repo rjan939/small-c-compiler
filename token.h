@@ -12,6 +12,7 @@
 #include <string.h>
 #include <stdarg.h>
 
+typedef struct Type Type;
 typedef struct Node Node;
 
 // tokenize.c 
@@ -29,7 +30,6 @@ typedef struct File {
 File *new_file(char* name, int file_num, char *contents);
 
 typedef struct Token Token;
-typedef struct Type Type;
 
 typedef enum TokenType {
   T_IDENT,   // Identifiers
@@ -55,23 +55,6 @@ void error_tok(Token *token, char *fmt, ...);
 bool equal(Token *token, char *op);
 Token *skip(Token *token, char *op);
 Token *tokenize(char *input);
-
-typedef struct Type {
-  TokenType type;
-  int size;
-  int align;
-  bool is_unsigned;
-  bool is_atomic;
-  Type *origin;
-
-  Type* base;
-
-  Token *name;
-  Token *name_pos;
-
-  int array_len;
-} Type;
-
 
 // parser.c
 
@@ -115,8 +98,9 @@ typedef enum {
 
 // AST Node type
 typedef struct Node {
-  NodeType type; // Type of Node
+  NodeType nodeType; // Type of Node
   Node *next; // Next Node
+  Type *type; // Type, like int or pointer to int or char, etc.
   
   Node *left; // left-side of AST
   Node *right; // right-side of AST 
@@ -130,11 +114,28 @@ typedef struct Node {
 
   // ND_BLOCK
   Node *body;
-  int val; // Only used if type == ND_NUM
-  LVar *var; // Only used if type == ND_VAR
+  int val; // Only used if NodeType == ND_NUM
+  LVar *var; // Only used if NodeType == ND_VAR
 } Node;
 
 Function *parse(Token *token);
+
+// type.c
+
+typedef enum {
+  TY_INT,
+  TY_PTR,
+} TypeKind;
+
+struct Type {
+  TypeKind kind;
+  Type *base;
+};
+
+extern Type *ty_int;
+
+bool is_integer(Type *type);
+void add_type(Node *node);
 
 // asmgen.c
 
