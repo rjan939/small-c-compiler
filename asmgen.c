@@ -37,7 +37,7 @@ static void gen_address(Node *node) {
   }
 
 
-  error("not a local variable");
+  error_tok(node->token, "not a local variable");
 }
 
 
@@ -111,7 +111,7 @@ static void gen_expr(Node *node) {
     default:
   }
 
-  error("invalid expression");
+  error_tok(node->token, "invalid expression");
 }
 
 static void gen_statement(Node *node) {
@@ -161,7 +161,7 @@ static void gen_statement(Node *node) {
     default:
   }
 
-  error("invalid statement");
+  error_tok(node->token, "invalid statement");
 }
 
 // Source: https://stackoverflow.com/questions/70778878/how-do-programs-know-how-much-space-to-allocate-for-local-variables-on-the-stack

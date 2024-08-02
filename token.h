@@ -100,6 +100,7 @@ typedef enum {
 typedef struct Node {
   NodeType nodeType; // Type of Node
   Node *next; // Next Node
+  Token *token; // Representative token
   Type *type; // Type, like int or pointer to int or char, etc.
   
   Node *left; // left-side of AST
