@@ -408,7 +408,8 @@ static Node *unary(Token **rest, Token *token) {
   return primary(rest, token);
 }
 
-// primary = "(" expr ")" | ident | num
+// primary = "(" expr ")" | ident args? | num
+// args = "(" ")"
 static Node *primary(Token **rest, Token* token) {
   // Skip parenthesis(idk how to spell it)
   if (equal(token, "(")) {
@@ -418,6 +419,14 @@ static Node *primary(Token **rest, Token* token) {
   }
 
   if (token->type == T_IDENT) {
+    // Function call
+    if (equal(token->next, "(")) {
+      Node *node = new_node(ND_FUNCALL, token);
+      node->funcname = strndup(token->loc, token->len);
+      *rest = skip(token->next->next, ")");
+      return node;
+    }
+
     // Verify that there is not a variable already created with this name
     LVar *var = find_var(token);
     if (!var) 

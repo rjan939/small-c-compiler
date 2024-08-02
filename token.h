@@ -92,6 +92,7 @@ typedef enum {
   ND_IF, // "if" (expr)
   ND_FOR, // "for" or "while"
   ND_BLOCK, // {...}
+  ND_FUNCALL, // Function call
   ND_STATEMENT, // Expression statement ";"
   ND_NULL_STATEMENT, // ";" with no actual expression or declaration
   ND_VAR, // Variable
@@ -117,6 +118,10 @@ typedef struct Node {
 
   // ND_BLOCK
   Node *body;
+
+  // Function call
+  char *funcname;
+
   int val; // Only used if NodeType == ND_NUM
   LVar *var; // Only used if NodeType == ND_VAR
 } Node;
