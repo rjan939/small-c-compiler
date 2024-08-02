@@ -54,6 +54,7 @@ void error_at(char *location, char *fmt, ...);
 void error_tok(Token *token, char *fmt, ...);
 bool equal(Token *token, char *op);
 Token *skip(Token *token, char *op);
+bool consume(Token **rest, Token *token, char *str);
 Token *tokenize(char *input);
 
 // parser.c
@@ -62,6 +63,7 @@ Token *tokenize(char *input);
 typedef struct LVar {
   struct LVar *next; // Next variable or NULL
   char *name;
+  Type *type; // Type
   int len;
   int offset; // Offset from %rbp
 } LVar;
@@ -130,12 +132,18 @@ typedef enum {
 
 struct Type {
   TypeKind kind;
+
+  // Pointer
   Type *base;
+
+  // Declaration
+  Token *name;
 };
 
 extern Type *ty_int;
 
 bool is_integer(Type *type);
+Type *pointer_to(Type *base);
 void add_type(Node *node);
 
 // asmgen.c

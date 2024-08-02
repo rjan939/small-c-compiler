@@ -4,6 +4,7 @@
 // Local variables in the parser
 LVar *locals;
 
+static Node *declaration(Token **rest, Token *token);
 static Node *compound_statement(Token **rest, Token *token);
 static Node *statement(Token **rest, Token *token);
 static Node *expr_statement(Token **rest, Token *token);
@@ -61,13 +62,14 @@ static Node *new_var_node(LVar *var, Token *token) {
   return node;
 }
 
-static LVar *new_lvar(char *name) {
+static LVar *new_lvar(char *name, Type *type) {
   LVar *var = calloc(1, sizeof(LVar));
   if (var == NULL) {
     error("not enough memory in system");
   }
 
   var->name = name;
+  var->type = type;
   var->next = locals;
   var->len = strlen(name);
   locals = var;
@@ -80,10 +82,63 @@ void free_lvar(LVar *locals) {
   free(locals);
 }
 
-
 static Node *new_unary(NodeType type, Node *expr, Token *token) {
   Node *node = new_node(type, token);
   node->left = expr;
+  return node;
+}
+
+static char *get_ident(Token *token) {
+  if (token->type != T_IDENT)
+    error_tok(token, "expected an identifier");
+  return strndup(token->loc, token->len);
+}
+
+static Type *declaration_specifier(Token **rest, Token *token) {
+  *rest = skip(token, "int");
+  return ty_int;
+}
+
+// declarator = "*"* ident
+static Type *declarator(Token **rest, Token *token, Type *type) {
+  while (consume(&token, token, "*"))
+    type = pointer_to(type);
+  
+  if (token->type != T_IDENT)
+    error_tok(token, "expected a variable name");
+  
+  type->name = token;
+  *rest = token->next;
+  return type;
+}
+
+// declaration = declaration_specifier (declarator ("=" expr)? ("," declarator ("=" expr)?)*)? ";"
+static Node *declaration(Token **rest, Token *token) {
+  Type *basetype = declaration_specifier(&token, token);
+
+  Node head = {};
+  Node *cur = &head;
+  int i = 0;
+
+  while (!equal(token, ";")) {
+    if (i++ > 0)
+      token = skip(token, ",");
+    
+    Type *type = declarator(&token, token, basetype);
+    LVar *var = new_lvar(get_ident(type->name), type);
+    
+    if (!equal(token, "="))
+      continue;
+    
+    Node *left = new_var_node(var, type->name);
+    Node *right = assign(&token, token->next);
+    Node *node = new_binary(ND_ASSIGN, left, right, token);
+    cur = cur->next = new_unary(ND_STATEMENT, node, token);
+  }
+
+  Node *node = new_node(ND_BLOCK, token);
+  node->body = head.next;
+  *rest = token->next;
   return node;
 }
 
@@ -147,13 +202,16 @@ static Node *statement(Token **rest, Token *token) {
   return expr_statement(rest, token);
 }
 
-// compound-stmt = stmt* "}"
+// compound-stmt = (declaration | stmt)* "}"
 static Node *compound_statement(Token **rest, Token* token) {
   Node *node = new_node(ND_BLOCK, token);
   Node head = {};
   Node *cur = &head;
   while (!equal(token, "}")) {
-    cur = cur->next = statement(&token, token);
+    if (equal(token, "int"))
+      cur = cur->next = declaration(&token, token);
+    else
+      cur = cur->next = statement(&token, token);
     add_type(cur);
   }
 
@@ -363,7 +421,7 @@ static Node *primary(Token **rest, Token* token) {
     // Verify that there is not a variable already created with this name
     LVar *var = find_var(token);
     if (!var) 
-      var = new_lvar(strndup(token->loc, token->len));
+      error_tok(token, "undefined variable");
     *rest = token->next;
     return new_var_node(var, token);
   }

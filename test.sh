@@ -56,11 +56,12 @@ assert 1 '{return 1>=0;}'
 assert 1 '{return 1>=1;}'
 assert 0 '{return 1>=2;}'
 
-assert 5 '{a=5; return a;}'
-assert 9 '{a=2; z=7; return a+z;}'
-assert 6 '{a=b=3; return a+b;}'
-assert 2 '{skibidi=2; return skibidi;}'
-assert 8 '{skibidi123=3; variable=5; return skibidi123+variable;}'
+assert 5 '{int a; a = 5; return a;}'
+assert 5 '{int a = 5; return a; }'
+assert 9 '{int a = 2; int z = 7; return a + z;}'
+assert 6 '{int a; int b; a = b = 3; return a+b;}'
+assert 2 '{int skibidi = 2; return skibidi;}'
+assert 8 '{int skibidi123 = 3; int variable = 5; return skibidi123 + variable;}'
 
 assert 3 '{1; 2; return 3;}'
 assert 2 '{1; return 2; 3;}'
@@ -77,22 +78,24 @@ assert 69 '{ if (2 - 1) return 69; return 4; }'
 assert 4 '{ if (0) { 1; 2; return 3; } else { return 4; } }'
 assert 3 '{ if (1) { 1; 2; return 3; } else { return 4; } }'
 
-assert 55 '{i = 0; j = 0; for (i = 0; i <= 10; i = i + 1) j = i + j; return j; }'
+assert 55 '{int i = 0; int j = 0; for (i = 0; i <= 10; i = i + 1) j = i + j; return j; }'
 assert 69 '{ for (;;) {return 69;} return 6; }'
 
-assert 6 '{ i = 0; while (i < 6) { i = i  + 1; } return i; }'
+assert 6 '{ int i = 0; while (i < 6) { i = i  + 1; } return i; }'
 
-assert 3 '{ x = 3; return *&x; }'
-assert 3 '{ x = 3; y = &x; z = &y; return **z; }'
+assert 3 '{ int x = 3; return *&x; }'
+assert 3 '{ int x = 3; int *y = &x; int **z = &y; return **z; }'
 # I actually have no idea if this is supposed to work since its technically ub in C
 # Since I cant confirm whether variables are initialized right next to each other on every system
-assert 5 '{ x = 3; y = 5; return *(&x + 1); }'
-assert 3 '{ x = 3; y = 5; return *(&y - 1); }'
-assert 5 '{ x = 3; y = 5; return *(&x - (-1)); }'
-assert 5 '{ x = 3; y = &x; *y = 5; return x; }'
-assert 7 '{ x = 3; y = 5; *(&x + 1) = 7; return y; }'
-assert 7 '{ x = 3; y = 5; *(&y - 2 + 1) = 7; return x; }'
-assert 5 '{ x = 3; return (&x + 2) - &x + 3; }'
+assert 5 '{ int x = 3; int y = 5; return *(&x + 1); }'
+assert 3 '{ int x = 3; int y = 5; return *(&y - 1); }'
+assert 5 '{ int x = 3; int y = 5; return *(&x - (-1)); }'
+assert 5 '{ int x = 3; int *y = &x; *y = 5; return x; }'
+assert 7 '{ int x = 3; int y = 5; *(&x + 1) = 7; return y; }'
+assert 7 '{ int x = 3; int y = 5; *(&y - 2 + 1) = 7; return x; }'
+assert 5 '{ int x = 3; return (&x + 2) - &x + 3; }'
+assert 8 '{ int x, y; x = 3; y = 5; return x + y; }'
+assert 8 '{ int x = 3, y = 5; return x + y; }'
 
 
 

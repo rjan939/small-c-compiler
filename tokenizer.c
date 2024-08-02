@@ -58,6 +58,15 @@ Token *skip(Token *token, char *s) {
   return token->next;
 }
 
+bool consume(Token **rest, Token *token, char *str) {
+  if (equal(token, str)) {
+    *rest = token->next;
+    return true;
+  }
+  *rest = token;
+  return false;
+}
+
 static Token *new_token(TokenType type, char *start, char *end) {
   Token *token = calloc(1, sizeof(Token));
   if (token == NULL) {
@@ -112,7 +121,7 @@ Token *tokenized(File *file) {
 }
 
 static bool is_keyword(Token *token) {
-  static char *keywords[] = {"return", "if", "else", "for", "while"};
+  static char *keywords[] = {"return", "if", "else", "for", "while", "int"};
   
   for (int i = 0; i < sizeof(keywords) / sizeof(*keywords); i++) {
     if (equal(token, keywords[i]))
