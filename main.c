@@ -2,9 +2,11 @@
 
 void free_memory(Token *token, Function *program) {
   free_token(token);
+  if (program == NULL)
+    return;
+  free(program->next);
   free_lvar(program->locals);
   free_node(program->body);
-  free(program);
 }
 
 int main(int argc, char **argv) {

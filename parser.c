@@ -4,6 +4,8 @@
 // Local variables in the parser
 LVar *locals;
 
+static Type *declaration_specifier(Token **rest, Token *token);
+static Type *declarator(Token **rest, Token *token, Type *type);
 static Node *declaration(Token **rest, Token *token);
 static Node *compound_statement(Token **rest, Token *token);
 static Node *statement(Token **rest, Token *token);
@@ -38,7 +40,9 @@ static Node *new_node(NodeType type, Token *token) {
 void free_node(Node *node) {
   if (!node) return;
   free_node(node->left);
+  free(node->type);
   free_node(node->right);
+  free(node->type);
   free(node);
 }
 
@@ -99,7 +103,17 @@ static Type *declaration_specifier(Token **rest, Token *token) {
   return ty_int;
 }
 
-// declarator = "*"* ident
+// type-suffix = ("(" func-params)?
+static Type *type_suffix(Token **rest, Token *token, Type *type) {
+  if (equal(token, "(")) {
+    *rest = skip(token->next, ")");
+    return func_type(type);
+  }
+  *rest = token;
+  return type;
+}
+
+// declarator = "*"* ident type-suffix
 static Type *declarator(Token **rest, Token *token, Type *type) {
   while (consume(&token, token, "*"))
     type = pointer_to(type);
@@ -107,8 +121,8 @@ static Type *declarator(Token **rest, Token *token, Type *type) {
   if (token->type != T_IDENT)
     error_tok(token, "expected a variable name");
   
+  type = type_suffix(rest, token->next, type);
   type->name = token;
-  *rest = token->next;
   return type;
 }
 
@@ -462,14 +476,31 @@ static Node *primary(Token **rest, Token* token) {
   return NULL; // It will exit before here
 }
 
-// program = statement*
-Function *parse(Token *token) {
+static Function *function(Token **rest, Token *token) {
+  Type *type = declaration_specifier(&token, token);
+  type = declarator(&token, token, type);
+
+  locals = NULL;
+
+  Function *func = calloc(1, sizeof(Function));
+  if (func == NULL)
+    error("Not enough memory in system for function");
+  func->name = get_ident(type->name);
+
   token = skip(token, "{");
+  func->body = compound_statement(rest, token);
+  func->locals = locals;
+  return func;
+}
+
+
+
+// program = function-definition*
+Function *parse(Token *token) {
+  Function head = {};
+  Function *cur = &head;
   
-  Function *program = calloc(1, sizeof(Function));
-  if (program == NULL) 
-    error("not enough memory in system");
-  program->body = compound_statement(&token, token);
-  program->locals = locals;
-  return program;
+  while (token->type != T_EOF)
+    cur = cur->next = function(&token, token);
+  return head.next;
 }

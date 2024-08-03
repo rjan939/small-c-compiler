@@ -70,6 +70,8 @@ typedef struct LVar {
 
 // Function storage
 typedef struct Function {
+  struct Function *next;
+  char *name;
   Node *body;
   LVar *locals;
   int stack_size;
@@ -134,6 +136,7 @@ Function *parse(Token *token);
 typedef enum {
   TY_INT,
   TY_PTR,
+  TY_FUNC,
 } TypeKind;
 
 struct Type {
@@ -144,12 +147,16 @@ struct Type {
 
   // Declaration
   Token *name;
+
+  // Function type
+  Type *return_type;
 };
 
 extern Type *ty_int;
 
 bool is_integer(Type *type);
 Type *pointer_to(Type *base);
+Type *func_type(Type *return_type);
 void add_type(Node *node);
 
 // asmgen.c

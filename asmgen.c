@@ -3,6 +3,7 @@
 // Code generator
 static int depth;
 static char *argreg[] = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
+static Function *current_func;
 
 static void gen_expr(Node *node);
 
@@ -168,7 +169,7 @@ static void gen_statement(Node *node) {
       return;
     case ND_RETURN:
       gen_expr(node->left);
-      printf(" jmp .L.return\n");
+      printf(" jmp .L.return.%s\n", current_func->name);
       return;
     case ND_STATEMENT:
       gen_expr(node->left);
@@ -183,32 +184,39 @@ static void gen_statement(Node *node) {
 // Assigns offsets to local variables for memory allocation
 static void assign_lvar_offsets(Function *program) {
   int offset = 0;
-  for (LVar *var = program->locals; var; var = var->next) {
-    offset += 8;
-    var->offset = -offset;
+  for (Function *func = program; func; func = func->next) {
+    int offset = 0;
+    for (LVar *var = func->locals; var; var = var->next) {
+      offset += 8;
+      var->offset = -offset;
+    }
+    func->stack_size = align_to(offset, 16);
   }
-  program->stack_size = align_to(offset, 16);
 }
 
 void gen_asm(Function *program) {
   assign_lvar_offsets(program);
-  printf("  .globl main\n");
-  printf("main:\n");
+  
+  for (Function *func = program; func; func = func->next) {
+    printf("  .globl %s\n", func->name);
+    printf("%s:\n", func->name);
+    current_func = func;
 
-  // Setting up stack frame
-  // %rbp is the base pointer register in this implementation
-  printf("  push %%rbp\n"); // Save caller's base pointer
-  printf("  mov %%rsp, %%rbp\n"); // Set the base pointer to the current stack pointer
-  printf("  sub $%d, %%rsp\n", program->stack_size); // Allocate space 
+    // Setting up stack frame
+    // %rbp is the base pointer register in this implementation
+    printf("  push %%rbp\n"); // Save caller's base pointer
+    printf("  mov %%rsp, %%rbp\n"); // Set the base pointer to the current stack pointer
+    printf("  sub $%d, %%rsp\n", func->stack_size); // Allocate space
 
+    // Emit code
+    gen_statement(func->body);
+    assert(depth == 0);
 
-  gen_statement(program->body);
-  assert(depth == 0);
+    printf(".L.return.%s:\n", func->name);
 
-  printf(".L.return:\n");
-
-  // Tear down stack frame
-  printf("  mov %%rbp, %%rsp\n"); // Reset stack pointer
-  printf("  pop %%rbp\n"); // Restore caller's base pointer
-  printf("  ret\n");
+    // Tear down stack frame
+    printf("  mov %%rbp, %%rsp\n"); // Reset stack pointer
+    printf("  pop %%rbp\n"); // Restore caller's base pointer
+    printf("  ret\n");
+  }
 }

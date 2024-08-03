@@ -15,6 +15,14 @@ Type *pointer_to(Type *base) {
   return type;
 }
 
+Type *func_type(Type *return_type) {
+  Type *type = calloc(1, sizeof(Type));
+  if (type == NULL)
+    error("Not enough memory in system");
+  type->kind = TY_FUNC;
+  type->return_type = return_type;
+}
+
 void add_type(Node *node) {
   if (!node || node->type)
     return;
