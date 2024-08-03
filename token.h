@@ -121,6 +121,7 @@ typedef struct Node {
 
   // Function call
   char *funcname;
+  Node *args;
 
   int val; // Only used if NodeType == ND_NUM
   LVar *var; // Only used if NodeType == ND_VAR

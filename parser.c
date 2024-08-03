@@ -408,8 +408,29 @@ static Node *unary(Token **rest, Token *token) {
   return primary(rest, token);
 }
 
-// primary = "(" expr ")" | ident args? | num
-// args = "(" ")"
+// funcall = ident "(" (assign ("," assign)*)? ")"
+static Node *funcall(Token **rest, Token *token) {
+  Token *start = token;
+  token = token->next->next;
+
+  Node head = {};
+  Node *cur = &head;
+
+  while (!equal(token, ")")) {
+    if (cur != &head)
+      token = skip(token, ",");
+    cur = cur->next = assign(&token, token);
+  }
+
+  *rest = skip(token, ")");
+
+  Node *node = new_node(ND_FUNCALL, start);
+  node->funcname = strndup(start->loc, start->len);
+  node->args = head.next;
+  return node;
+}
+
+// primary = "(" expr ")" | funcall | num
 static Node *primary(Token **rest, Token* token) {
   // Skip parenthesis(idk how to spell it)
   if (equal(token, "(")) {
@@ -421,10 +442,7 @@ static Node *primary(Token **rest, Token* token) {
   if (token->type == T_IDENT) {
     // Function call
     if (equal(token->next, "(")) {
-      Node *node = new_node(ND_FUNCALL, token);
-      node->funcname = strndup(token->loc, token->len);
-      *rest = skip(token->next->next, ")");
-      return node;
+      return funcall(rest, token);
     }
 
     // Verify that there is not a variable already created with this name
