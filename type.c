@@ -1,6 +1,6 @@
 #include "token.h"
 
-Type *ty_int = &(Type) {TY_INT};
+Type *ty_int = &(Type) {TY_INT, 8};
 
 bool is_integer(Type *type) {
   return type->kind == TY_INT;
@@ -19,6 +19,7 @@ Type *pointer_to(Type *base) {
   if (type == NULL)
     error("Not enough memory in system");
   type->kind = TY_PTR;
+  type->size = 8;
   type->base = base;
   return type;
 }
@@ -29,6 +30,17 @@ Type *func_type(Type *return_type) {
     error("Not enough memory in system");
   type->kind = TY_FUNC;
   type->return_type = return_type;
+}
+
+Type *array_of(Type *base, int len) {
+  Type *type = calloc(1, sizeof(Type));
+  if (type == NULL)
+    error("Not enough memory in system");
+  type->kind = TY_ARRAY;
+  type->size = base->size * len;
+  type->base = base;
+  type->array_len = len;
+  return type;
 }
 
 void add_type(Node *node) {
@@ -53,7 +65,11 @@ void add_type(Node *node) {
     case ND_MUL:
     case ND_DIV:
     case ND_NEG:
+      node->type = node->left->type;
+      return;
     case ND_ASSIGN:
+      if (node->left->type->kind == TY_ARRAY)
+        error_tok(node->left->token, "not a local variable");
       node->type = node->left->type;
       return;
     case ND_EQ:
@@ -68,13 +84,15 @@ void add_type(Node *node) {
       node->type = node->var->type;
       return;
     case ND_ADDRESS:
-      node->type = pointer_to(node->left->type);
+      if (node->left->type->kind == TY_ARRAY)
+        node->type = pointer_to(node->left->type->base);
+      else
+        node->type = pointer_to(node->left->type);
       return;
     case ND_DEREF:
-      if (node->left->type->kind != TY_PTR)
+      if (!node->left->type->base)
         error_tok(node->token, "invalid pointer dereference");
-      else
-        node->type = node->left->type->base;
+      node->type = node->left->type->base;
       return;
   }
 }

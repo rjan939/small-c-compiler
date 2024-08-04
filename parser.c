@@ -98,33 +98,49 @@ static char *get_ident(Token *token) {
   return strndup(token->loc, token->len);
 }
 
+static int get_number(Token *token) {
+  if (token->type != T_NUM)
+    error_tok(token, "expected a number");
+  return token->val;
+}
+
+// declaration-specifier = "int"
 static Type *declaration_specifier(Token **rest, Token *token) {
   *rest = skip(token, "int");
   return ty_int;
 }
 
-// type-suffix = ("(" func-params? ")")?
-// func-params = param ("," param)*
-// param       = declaration_specifier declarator
+// func-params = (param ("," param)*)? ")"
+// param       = declaration-specifier declarator
+static Type *func_params(Token **rest, Token *token, Type *type) {
+  Type head = {};
+  Type *cur = &head;
+
+  while (!equal(token, ")")) {
+    if (cur != &head)
+      token = skip(token, ",");
+    Type *basetype = declaration_specifier(&token, token);
+    Type *type = declarator(&token, token, basetype);
+    cur = cur->next = copy_type(type);
+  }
+  
+  type = func_type(type);
+  type->params = head.next;
+  *rest = token->next;
+  return type;
+}
+
+// type-suffix = "(" func-params
+//             | "[" num "]"
+//             | ε
 static Type *type_suffix(Token **rest, Token *token, Type *type) {
-  if (equal(token, "(")) {
-    token = token->next;
-
-    Type head = {};
-    Type *cur = &head;
-
-    while (!equal(token, ")")) {
-      if (cur != &head)
-        token = skip(token, ",");
-      Type *basetype = declaration_specifier(&token, token);
-      Type *ty = declarator(&token, token, basetype);
-      cur = cur->next = copy_type(ty);
-    }
-
-    type = func_type(type);
-    type->params = head.next;
-    *rest = token->next;
-    return type;
+  if (equal(token, "(")) 
+    return func_params(rest, token->next, type);
+  
+  if (equal(token, "[")) {
+    int size = get_number(token->next);
+    *rest = skip(token->next->next, "]");
+    return array_of(type, size);
   }
 
   *rest = token;
@@ -354,7 +370,7 @@ static Node *new_add(Node *left, Node *right, Token *token) {
   }
 
   // ptr + num
-  right = new_binary(ND_MUL, right, new_num(8, token), token);
+  right = new_binary(ND_MUL, right, new_num(left->type->base->size, token), token);
   return new_binary(ND_ADD, left, right, token);
 }
 
@@ -368,7 +384,7 @@ static Node *new_sub(Node *left, Node *right, Token *token) {
   
   // ptr - num
   if (left->type->base && is_integer(right->type)) {
-    right = new_binary(ND_MUL, right, new_num(8, token), token);
+    right = new_binary(ND_MUL, right, new_num(left->type->base->size, token), token);
     add_type(right);
     Node *node = new_binary(ND_SUB, left, right, token);
     node->type = left->type;
@@ -379,7 +395,7 @@ static Node *new_sub(Node *left, Node *right, Token *token) {
   if (left->type->base && right->type->base) {
     Node *node = new_binary(ND_SUB, left, right, token);
     node->type = ty_int;
-    return new_binary(ND_DIV, node, new_num(8, token), token);
+    return new_binary(ND_DIV, node, new_num(left->type->base->size, token), token);
   }
 
   error_tok(token, "invalid operands");

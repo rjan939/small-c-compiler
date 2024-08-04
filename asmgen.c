@@ -42,6 +42,25 @@ static void gen_address(Node *node) {
   error_tok(node->token, "not a local variable");
 }
 
+// Load a value from where %rax is pointing to
+static void load(Type *type) {
+  if (type->kind == TY_ARRAY) {
+    // If it is an array, dont load a value to the
+    // register because you cant load entire arrays to regs
+    // the result of an evaluation of an array becomes
+    // not the array itself but the address of the array
+    return;
+  }
+
+  printf("  mov (%%rax), %%rax\n");
+}
+
+// Store %rax to an address that the stack top is pointing to
+static void store(void) {
+  pop("%rdi");
+  printf("  mov %%rax, (%%rdi)\n");
+}
+
 
 // Generate assembly code to handle the logic of given node 
 static void gen_expr(Node *node) {
@@ -55,11 +74,11 @@ static void gen_expr(Node *node) {
       return;
     case ND_VAR:
       gen_address(node);
-      printf("  mov (%%rax), %%rax\n");
+      load(node->type);
       return;
     case ND_DEREF:
       gen_expr(node->left);
-      printf("  mov (%%rax), %%rax\n");
+      load(node->type);
       return;
     case ND_ADDRESS:
       gen_address(node->left);
@@ -68,8 +87,7 @@ static void gen_expr(Node *node) {
       gen_address(node->left);
       push();
       gen_expr(node->right);
-      pop("%rdi");
-      printf("  mov %%rax, (%%rdi)\n");
+      store();
       return;
     case ND_FUNCALL:
       int nargs = 0;
@@ -187,7 +205,7 @@ static void assign_lvar_offsets(Function *program) {
   for (Function *func = program; func; func = func->next) {
     int offset = 0;
     for (LVar *var = func->locals; var; var = var->next) {
-      offset += 8;
+      offset += var->type->size;
       var->offset = -offset;
     }
     func->stack_size = align_to(offset, 16);
