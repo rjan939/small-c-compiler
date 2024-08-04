@@ -6,6 +6,14 @@ bool is_integer(Type *type) {
   return type->kind == TY_INT;
 }
 
+Type *copy_type(Type *type) {
+  Type *ret = calloc(1, sizeof(Type));
+  if (ret == NULL)
+    error("Not enough memory in system to create type");
+  *ret = *type;
+  return ret;
+}
+
 Type *pointer_to(Type *base) {
   Type *type = calloc(1, sizeof(Type));
   if (type == NULL)
@@ -37,7 +45,8 @@ void add_type(Node *node) {
 
   for (Node *n = node->body; n; n = n->next)
     add_type(n);
-  
+  for (Node *n = node->args; n; n = n->next)
+    add_type(n);
   switch (node->nodeType) {
     case ND_ADD:
     case ND_SUB:

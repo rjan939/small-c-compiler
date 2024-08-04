@@ -103,12 +103,30 @@ static Type *declaration_specifier(Token **rest, Token *token) {
   return ty_int;
 }
 
-// type-suffix = ("(" func-params)?
+// type-suffix = ("(" func-params? ")")?
+// func-params = param ("," param)*
+// param       = declaration_specifier declarator
 static Type *type_suffix(Token **rest, Token *token, Type *type) {
   if (equal(token, "(")) {
-    *rest = skip(token->next, ")");
-    return func_type(type);
+    token = token->next;
+
+    Type head = {};
+    Type *cur = &head;
+
+    while (!equal(token, ")")) {
+      if (cur != &head)
+        token = skip(token, ",");
+      Type *basetype = declaration_specifier(&token, token);
+      Type *ty = declarator(&token, token, basetype);
+      cur = cur->next = copy_type(ty);
+    }
+
+    type = func_type(type);
+    type->params = head.next;
+    *rest = token->next;
+    return type;
   }
+
   *rest = token;
   return type;
 }
@@ -476,6 +494,13 @@ static Node *primary(Token **rest, Token* token) {
   return NULL; // It will exit before here
 }
 
+static void create_param_lvars(Type *param) {
+  if (param) {
+    create_param_lvars(param->next);
+    new_lvar(get_ident(param->name), param);
+  }
+}
+
 static Function *function(Token **rest, Token *token) {
   Type *type = declaration_specifier(&token, token);
   type = declarator(&token, token, type);
@@ -486,6 +511,8 @@ static Function *function(Token **rest, Token *token) {
   if (func == NULL)
     error("Not enough memory in system for function");
   func->name = get_ident(type->name);
+  create_param_lvars(type->params);
+  func->params = locals;
 
   token = skip(token, "{");
   func->body = compound_statement(rest, token);

@@ -208,6 +208,11 @@ void gen_asm(Function *program) {
     printf("  mov %%rsp, %%rbp\n"); // Set the base pointer to the current stack pointer
     printf("  sub $%d, %%rsp\n", func->stack_size); // Allocate space
 
+    // Save passed-by-register args to the stack
+    int i = 0;
+    for (LVar *var = func->params; var; var = var->next)
+      printf("  mov %s, %d(%%rbp)\n", argreg[i++], var->offset);
+
     // Emit code
     gen_statement(func->body);
     assert(depth == 0);
