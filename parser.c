@@ -16,6 +16,7 @@ static Node *equality(Token **rest, Token *token);
 static Node *relational(Token **rest, Token *token);
 static Node *add(Token **rest, Token *token);
 static Node *mul(Token **rest, Token *token);
+static Node *postfix(Token **rest, Token *token);
 static Node *unary(Token **rest, Token *token);
 static Node *primary(Token **rest, Token *token);
 
@@ -444,7 +445,7 @@ static Node *mul(Token **rest, Token *token) {
 }
 
 // unary = ("+" | "-" | "*" | "&") unary 
-//       | primary
+//       | postfix
 static Node *unary(Token **rest, Token *token) {
   if (equal(token, "+")) 
     return unary(rest, token->next);
@@ -454,7 +455,22 @@ static Node *unary(Token **rest, Token *token) {
     return new_unary(ND_ADDRESS, unary(rest, token->next), token);
   if (equal(token, "*")) 
     return new_unary(ND_DEREF, unary(rest, token->next), token);
-  return primary(rest, token);
+  return postfix(rest, token);
+}
+
+// postfix = primary ("[" expr "]")*
+static Node *postfix(Token **rest, Token *token) {
+  Node *node = primary(&token, token);
+
+  while (equal(token, "[")) {
+    // x[y] is short for *(x + y)
+    Token *start = token;
+    Node *index = expr(&token, token->next);
+    token = skip(token, "]");
+    node = new_unary(ND_DEREF, new_add(node, index, start), start);
+  }
+  *rest = token;
+  return node;
 }
 
 // funcall = ident "(" (assign ("," assign)*)? ")"
