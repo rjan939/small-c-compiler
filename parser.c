@@ -2,7 +2,8 @@
 #include "token.h"
 
 // Local variables in the parser
-LVar *locals;
+static Obj *locals;
+static Obj *globals;
 
 static Type *declaration_specifier(Token **rest, Token *token);
 static Type *declarator(Token **rest, Token *token, Type *type);
@@ -21,8 +22,8 @@ static Node *unary(Token **rest, Token *token);
 static Node *primary(Token **rest, Token *token);
 
 // Find a local variable based on name
-static LVar *find_var(Token *token) {
-  for (LVar *var = locals; var; var = var->next)
+static Obj *find_var(Token *token) {
+  for (Obj *var = locals; var; var = var->next)
     if (strlen(var->name) == token->len && !strncmp(token->loc, var->name, token->len))
       return var;
   return NULL;
@@ -61,27 +62,38 @@ static Node *new_num(int val, Token *token) {
   return node;
 }
 
-static Node *new_var_node(LVar *var, Token *token) {
+static Node *new_var_node(Obj *var, Token *token) {
   Node *node = new_node(ND_VAR, token);
   node->var = var;
   return node;
 }
 
-static LVar *new_lvar(char *name, Type *type) {
-  LVar *var = calloc(1, sizeof(LVar));
-  if (var == NULL) {
-    error("not enough memory in system");
-  }
-
+static Obj *new_var(char *name, Type *type) {
+  Obj *var = calloc(1, sizeof(Obj));
+  if (var == NULL)
+    error("not enough memory in system for var");
   var->name = name;
   var->type = type;
+  return var;
+}
+
+static Obj *new_lvar(char *name, Type *type) {
+  Obj* var = new_var(name, type);
+  var->is_local = true;
   var->next = locals;
-  var->len = strlen(name);
+
   locals = var;
   return var;
 }
 
-void free_lvar(LVar *locals) {
+static Obj *new_gvar(char *name, Type *type) {
+  Obj *var = new_var(name, type);
+  var->next = globals;
+  globals = var;
+  return var;
+}
+
+void free_lvar(Obj *locals) {
   if (!locals) return;
   free_lvar(locals->next);
   free(locals);
@@ -175,7 +187,7 @@ static Node *declaration(Token **rest, Token *token) {
       token = skip(token, ",");
     
     Type *type = declarator(&token, token, basetype);
-    LVar *var = new_lvar(get_ident(type->name), type);
+    Obj *var = new_lvar(get_ident(type->name), type);
     
     if (!equal(token, "="))
       continue;
@@ -517,7 +529,7 @@ static Node *primary(Token **rest, Token* token) {
     }
 
     // Verify that there is not a variable already created with this name
-    LVar *var = find_var(token);
+    Obj *var = find_var(token);
     if (!var) 
       error_tok(token, "undefined variable");
     *rest = token->next;
@@ -540,33 +552,32 @@ static void create_param_lvars(Type *param) {
   }
 }
 
-static Function *function(Token **rest, Token *token) {
-  Type *type = declaration_specifier(&token, token);
-  type = declarator(&token, token, type);
+static Token *function(Token *token, Type *basetype) {
+  Type *type = declarator(&token, token, basetype);
+
+  Obj *func = new_gvar(get_ident(type->name), type);
+  func->is_function = true;
 
   locals = NULL;
 
-  Function *func = calloc(1, sizeof(Function));
-  if (func == NULL)
-    error("Not enough memory in system for function");
-  func->name = get_ident(type->name);
   create_param_lvars(type->params);
   func->params = locals;
 
   token = skip(token, "{");
-  func->body = compound_statement(rest, token);
+  func->body = compound_statement(&token, token);
   func->locals = locals;
-  return func;
+  return token;
 }
 
 
 
-// program = function-definition*
-Function *parse(Token *token) {
-  Function head = {};
-  Function *cur = &head;
+// program = (function-definition | global-variable)*
+Obj *parse(Token *token) {
+  globals = NULL;
   
-  while (token->type != T_EOF)
-    cur = cur->next = function(&token, token);
-  return head.next;
+  while (token->type != T_EOF) {
+    Type *basetype = declaration_specifier(&token, token);
+    token = function(token, basetype);
+  }
+  return globals;
 }

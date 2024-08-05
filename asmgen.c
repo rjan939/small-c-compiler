@@ -3,7 +3,7 @@
 // Code generator
 static int depth;
 static char *argreg[] = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
-static Function *current_func;
+static Obj *current_func;
 
 static void gen_expr(Node *node);
 
@@ -200,11 +200,14 @@ static void gen_statement(Node *node) {
 
 // Source: https://stackoverflow.com/questions/70778878/how-do-programs-know-how-much-space-to-allocate-for-local-variables-on-the-stack
 // Assigns offsets to local variables for memory allocation
-static void assign_lvar_offsets(Function *program) {
+static void assign_lvar_offsets(Obj *program) {
   int offset = 0;
-  for (Function *func = program; func; func = func->next) {
+  for (Obj *func = program; func; func = func->next) {
+    if (!func->is_function)
+      continue;
+
     int offset = 0;
-    for (LVar *var = func->locals; var; var = var->next) {
+    for (Obj *var = func->locals; var; var = var->next) {
       offset += var->type->size;
       var->offset = -offset;
     }
@@ -212,10 +215,10 @@ static void assign_lvar_offsets(Function *program) {
   }
 }
 
-void gen_asm(Function *program) {
+void gen_asm(Obj *program) {
   assign_lvar_offsets(program);
   
-  for (Function *func = program; func; func = func->next) {
+  for (Obj *func = program; func; func = func->next) {
     printf("  .globl %s\n", func->name);
     printf("%s:\n", func->name);
     current_func = func;
@@ -228,7 +231,7 @@ void gen_asm(Function *program) {
 
     // Save passed-by-register args to the stack
     int i = 0;
-    for (LVar *var = func->params; var; var = var->next)
+    for (Obj *var = func->params; var; var = var->next)
       printf("  mov %s, %d(%%rbp)\n", argreg[i++], var->offset);
 
     // Emit code

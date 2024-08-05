@@ -59,25 +59,25 @@ Token *tokenize(char *input);
 
 // parser.c
 
-// Local Variable
-typedef struct LVar {
-  struct LVar *next; // Next variable or NULL
-  char *name;
+typedef struct Obj Obj;
+struct Obj {
+  Obj *next;
+  char *name; // Variable name
   Type *type; // Type
-  int len;
-  int offset; // Offset from %rbp
-} LVar;
+  bool is_local; // local or global/function
 
-// Function storage
-typedef struct Function {
-  struct Function *next;
-  char *name;
-  LVar *params;
+  // Local variable
+  int offset; // offset from %rbp
 
+  // Global variable or function
+  bool is_function;
+
+  // Function;
+  Obj *params;
   Node *body;
-  LVar *locals;
+  Obj *locals;
   int stack_size;
-} Function;
+};
 
 typedef enum {
   ND_ADD, // +
@@ -128,10 +128,10 @@ typedef struct Node {
   Node *args;
 
   int val; // Only used if NodeType == ND_NUM
-  LVar *var; // Only used if NodeType == ND_VAR
+  Obj *var; // Only used if NodeType == ND_VAR
 } Node;
 
-Function *parse(Token *token);
+Obj *parse(Token *token);
 
 // type.c
 
@@ -178,7 +178,7 @@ void add_type(Node *node);
 
 // asmgen.c
 
-void gen_asm(Function *program);
+void gen_asm(Obj *program);
 
 
 // Memory management
@@ -187,7 +187,7 @@ void free_node(Node *node);
 
 void free_token(Token *token);
 
-void free_lvar(LVar *locals);
+void free_lvar(Obj *locals);
 
-void free_memory(Token *token, Function *program);
+void free_memory(Token *token, Obj *program);
 
