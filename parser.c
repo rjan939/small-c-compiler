@@ -495,13 +495,19 @@ static Node *funcall(Token **rest, Token *token) {
   return node;
 }
 
-// primary = "(" expr ")" | funcall | num
+// primary = "(" expr ")" | "sizeof" unary | funcall | num
 static Node *primary(Token **rest, Token* token) {
   // Skip parenthesis(idk how to spell it)
   if (equal(token, "(")) {
     Node *node = expr(&token, token->next);
     *rest = skip(token, ")");
     return node;
+  }
+
+  if (equal(token, "sizeof")) {
+    Node *node = unary(rest, token->next);
+    add_type(node);
+    return new_num(node->type->size, token);
   }
 
   if (token->type == T_IDENT) {
