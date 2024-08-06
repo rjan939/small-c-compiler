@@ -1,9 +1,10 @@
 #include "token.h"
 
+Type *ty_char = &(Type) {TY_CHAR, 1};
 Type *ty_int = &(Type) {TY_INT, 8};
 
 bool is_integer(Type *type) {
-  return type->kind == TY_INT;
+  return type->kind == TY_CHAR || type->kind == TY_INT;
 }
 
 Type *copy_type(Type *type) {

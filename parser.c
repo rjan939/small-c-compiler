@@ -121,8 +121,13 @@ static int get_number(Token *token) {
   return token->val;
 }
 
-// declaration-specifier = "int"
+// declaration-specifier = "char" | "int"
 static Type *declaration_specifier(Token **rest, Token *token) {
+  if (equal(token, "char")) {
+    *rest = token->next;
+    return ty_char;
+  }
+
   *rest = skip(token, "int");
   return ty_int;
 }
@@ -208,6 +213,11 @@ static Node *declaration(Token **rest, Token *token) {
   return node;
 }
 
+// Returns true if token represents a type
+static bool is_typename(Token *token) {
+  return equal(token, "char") || equal(token, "int");
+}
+
 // stmt = "return" expr ";" 
 //        | "if" "(" expr ")" stmt ("else" stmt)?
 //        | "for" "(" expr-stmt expr? ";" expr? ")" statement
@@ -274,7 +284,7 @@ static Node *compound_statement(Token **rest, Token* token) {
   Node head = {};
   Node *cur = &head;
   while (!equal(token, "}")) {
-    if (equal(token, "int"))
+    if (is_typename(token))
       cur = cur->next = declaration(&token, token);
     else
       cur = cur->next = statement(&token, token);

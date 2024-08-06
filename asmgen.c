@@ -2,7 +2,9 @@
 
 // Code generator
 static int depth;
-static char *argreg[] = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
+
+static char *argreg8[] = {"%dil", "%sil", "%dl", "%cl", "%r8b", "%r9b"};
+static char *argreg64[] = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
 static Obj *current_func;
 
 static void gen_expr(Node *node);
@@ -58,13 +60,20 @@ static void load(Type *type) {
     return;
   }
 
-  printf("  mov (%%rax), %%rax\n");
+  if (type->size == 1)
+    printf("  movsbq (%%rax), %%rax\n");
+  else
+    printf("  mov (%%rax), %%rax\n");
 }
 
 // Store %rax to an address that the stack top is pointing to
-static void store(void) {
+static void store(Type *type) {
   pop("%rdi");
-  printf("  mov %%rax, (%%rdi)\n");
+
+  if (type->size == 1)
+    printf("  mov %%al, (%%rdi)\n");
+  else
+    printf("  mov %%rax, (%%rdi)\n");
 }
 
 
@@ -93,7 +102,7 @@ static void gen_expr(Node *node) {
       gen_address(node->left);
       push();
       gen_expr(node->right);
-      store();
+      store(node->type);
       return;
     case ND_FUNCALL:
       int nargs = 0;
@@ -104,7 +113,7 @@ static void gen_expr(Node *node) {
       }
       
       for (int i = nargs - 1; i >= 0; i--)
-        pop(argreg[i]);
+        pop(argreg64[i]);
       
       printf("  mov $0, %%rax\n");
       printf("  call %s\n", node->funcname);
@@ -252,7 +261,10 @@ static void emit_text(Obj *program) {
     // Save passed-by-register args to the stack
     int i = 0;
     for (Obj *var = func->params; var; var = var->next)
-      printf("  mov %s, %d(%%rbp)\n", argreg[i++], var->offset);
+      if (var->type->size == 1)
+        printf("  mov %s, %d(%%rbp)\n", argreg8[i++], var->offset);
+      else
+        printf("  mov %s, %d(%%rbp)\n", argreg64[i++], var->offset);
 
     // Emit code
     gen_statement(func->body);
