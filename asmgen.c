@@ -30,8 +30,14 @@ static int align_to(int n, int align) {
 
 static void gen_address(Node *node) {
   switch (node->nodeType) {
-    case ND_VAR: 
-      printf("  lea %d(%%rbp), %%rax\n", node->var->offset);
+    case ND_VAR:
+      if (node->var->is_local) {
+        // Local variable
+        printf("  lea %d(%%rbp), %%rax\n", node->var->offset);
+      } else {
+        // Global variable
+        printf("  lea %s(%%rip), %%rax\n", node->var->name);
+      }
       return;
     case ND_DEREF:
       gen_expr(node->left);
@@ -215,11 +221,25 @@ static void assign_lvar_offsets(Obj *program) {
   }
 }
 
-void gen_asm(Obj *program) {
-  assign_lvar_offsets(program);
-  
+static void emit_data(Obj *program) {
+  for (Obj *var = program; var; var = var->next) {
+    if (var->is_function)
+      continue;
+    
+    printf("  .data\n");
+    printf("  .globl %s\n", var->name);
+    printf("%s:\n", var->name);
+    printf("  .zero %d\n", var->type->size);
+  }
+}
+
+static void emit_text(Obj *program) {
   for (Obj *func = program; func; func = func->next) {
+    if (!func->is_function)
+      continue;
+
     printf("  .globl %s\n", func->name);
+    printf("  .text\n");
     printf("%s:\n", func->name);
     current_func = func;
 
@@ -245,4 +265,10 @@ void gen_asm(Obj *program) {
     printf("  pop %%rbp\n"); // Restore caller's base pointer
     printf("  ret\n");
   }
+}
+
+void gen_asm(Obj *program) {
+  assign_lvar_offsets(program);
+  emit_data(program);
+  emit_text(program);
 }
