@@ -73,7 +73,7 @@ static Token *new_token(TokenType type, char *start, char *end) {
     error("not enough memory in system");
   }
 
-  token->type = type;
+  token->tokenType = type;
   token->loc = start;
   token->len = end - start;
   return token;
@@ -132,10 +132,22 @@ static bool is_keyword(Token *token) {
   return false;
 }
 
+static Token *read_string_literal(char *start) {
+  char *p = start + 1;
+  for (; *p != '"'; p++)
+    if (*p == '\n' || *p == '\0')
+      error_at(start, "unclosed string literal");
+  
+  Token *token = new_token(T_STR, start, p + 1);
+  token->type = array_of(ty_char, p - start);
+  token->str = strndup(start + 1, p - start - 1);
+  return token;
+}
+
 static void identify_keywords(Token *token) {
-  for (Token *curr = token; curr->type != T_EOF; curr = curr->next) {
-    if (equal(curr, "return")) {
-      curr->type = T_KEYWORD;
+  for (Token *curr = token; curr->tokenType != T_EOF; curr = curr->next) {
+    if (is_keyword(token)) {
+      curr->tokenType = T_KEYWORD;
     }
   }
 }
@@ -163,15 +175,22 @@ Token *tokenize(char *p) {
       continue;
     }
 
-    // Identifier 
+    // String literal
+    if (*p == '"') {
+      cur = cur->next = read_string_literal(p);
+      p += cur->len;
+      continue;
+    }
+
+    // Identifier or keyword
     if (is_valid_ident_first_character(*p)) {
       char *start = p;
       do {
         p++;
       } while (is_valid_ident_character(*p));
       cur = cur->next = new_token(T_IDENT, start, p);
-      if (equal(cur, "return")) {
-        cur->type = T_KEYWORD;
+      if (is_keyword(cur)) {
+        cur->tokenType = T_KEYWORD;
       }
       continue;
     }

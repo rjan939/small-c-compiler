@@ -109,14 +109,29 @@ static Node *new_unary(NodeType type, Node *expr, Token *token) {
   return node;
 }
 
+static char *new_unique_name(void) {
+  static int id = 0;
+  return format(".L..%d", id++);
+}
+
+static Obj *new_anon_gvar(Type *type) {
+  return new_gvar(new_unique_name(), type);
+}
+
+static Obj *new_string_literal(char *p, Type *type) {
+  Obj *var = new_anon_gvar(type);
+  var->init_data = p;
+  return var;
+}
+
 static char *get_ident(Token *token) {
-  if (token->type != T_IDENT)
+  if (token->tokenType != T_IDENT)
     error_tok(token, "expected an identifier");
   return strndup(token->loc, token->len);
 }
 
 static int get_number(Token *token) {
-  if (token->type != T_NUM)
+  if (token->tokenType != T_NUM)
     error_tok(token, "expected a number");
   return token->val;
 }
@@ -175,7 +190,7 @@ static Type *declarator(Token **rest, Token *token, Type *type) {
   while (consume(&token, token, "*"))
     type = pointer_to(type);
   
-  if (token->type != T_IDENT)
+  if (token->tokenType != T_IDENT)
     error_tok(token, "expected a variable name");
   
   type = type_suffix(rest, token->next, type);
@@ -521,7 +536,7 @@ static Node *funcall(Token **rest, Token *token) {
   return node;
 }
 
-// primary = "(" expr ")" | "sizeof" unary | funcall | num
+// primary = "(" expr ")" | "sizeof" unary | funcall | str | num
 static Node *primary(Token **rest, Token* token) {
   // Skip parenthesis(idk how to spell it)
   if (equal(token, "(")) {
@@ -536,7 +551,7 @@ static Node *primary(Token **rest, Token* token) {
     return new_num(node->type->size, token);
   }
 
-  if (token->type == T_IDENT) {
+  if (token->tokenType == T_IDENT) {
     // Function call
     if (equal(token->next, "(")) {
       return funcall(rest, token);
@@ -550,7 +565,13 @@ static Node *primary(Token **rest, Token* token) {
     return new_var_node(var, token);
   }
 
-  if (token->type == T_NUM) {
+  if (token->tokenType == T_STR) {
+    Obj *var = new_string_literal(token->str, token->type);
+    *rest = token->next;
+    return new_var_node(var, token);
+  }
+
+  if (token->tokenType == T_NUM) {
     Node *node = new_num(token->val, token);
     *rest = token->next;
     return node;
@@ -613,7 +634,7 @@ static bool is_function(Token *token) {
 Obj *parse(Token *token) {
   globals = NULL;
   
-  while (token->type != T_EOF) {
+  while (token->tokenType != T_EOF) {
     Type *basetype = declaration_specifier(&token, token);
     
     // Function

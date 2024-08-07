@@ -15,7 +15,10 @@
 typedef struct Type Type;
 typedef struct Node Node;
 
-// tokenize.c 
+// strings.c
+char *format(char *fmt, ...);
+
+// tokenizer.c 
 
 typedef struct File {
   char *name; // Original filename
@@ -42,11 +45,13 @@ typedef enum TokenType {
 } TokenType;
 
 typedef struct Token {
-  TokenType type;
-  Token *next;
-  int val;
-  char *loc;
-  int len;
+  TokenType tokenType; // Kind of Token
+  Token *next; // Next token
+  int val; // If tokenType == T_NUM, its value
+  char *loc; // Token location
+  int len; // Token length
+  Type *type; // Used if T_STR
+  char *str; // String literal contents including terminating '\0'
 } Token;
 
 void error(char *fmt, ...);
@@ -71,6 +76,9 @@ struct Obj {
 
   // Global variable or function
   bool is_function;
+
+  // Global variable
+  char *init_data;
 
   // Function;
   Obj *params;
