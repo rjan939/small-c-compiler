@@ -93,6 +93,14 @@ static bool is_valid_ident_character(char c) {
   return is_valid_ident_first_character(c) || ('0' <= c && c <= '9');
 }
 
+static int from_hex(char c) {
+  if ('0' <= c && c <= '9')
+    return c - '0';
+  if ('a' <= c && c <= 'f')
+    return c - 'a' + 10;
+  return c - 'A' + 10;
+}
+
 // Returns length of punctuator token from p
 static int get_punct_length(char *p) {
   if (startswith(p, "==") || startswith(p, "!=") ||
@@ -141,6 +149,19 @@ static int read_escaped_char(char **new_pos, char *p) {
       if ('0' <= *p && *p <= '7')
         c = (c << 3) + (*p++ - '0');
     }
+    *new_pos = p;
+    return c;
+  }
+
+  if (*p == 'x') {
+    // hex num
+    p++;
+    if (!isxdigit(*p))
+      error_at(p, "invalid hex escape sequence");
+
+    int c = 0;
+    for (; isxdigit(*p); p++)
+      c = (c << 4) + from_hex(*p);
     *new_pos = p;
     return c;
   }
