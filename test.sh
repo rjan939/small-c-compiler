@@ -195,7 +195,7 @@ assert 10 'int main() { return "\n"[0]; }'
 assert 11 'int main() { return "\v"[0]; }'
 assert 12 'int main() { return "\f"[0]; }'
 assert 13 'int main() { return "\r"[0]; }'
-assert 27 'int main () { return "\e"[0]; }'
+assert 27 'int main() { return "\e"[0]; }'
 
 assert 106 'int main() { return "\j"[0]; }'
 assert 107 'int main() { return "\k"[0]; }'
@@ -205,5 +205,10 @@ assert 7 'int main() { return "\ax\ny"[0]; }'
 assert 120 'int main() { return "\ax\ny"[1]; }'
 assert 10 'int main() { return "\ax\ny"[2]; }'
 assert 121 'int main() { return "\ax\ny"[3]; }'
+
+assert 0 'int main() { return "\0"[0]; }'
+assert 16 'int main() { return "\20"[0]; }'
+assert 65 'int main() { return "\101"[0]; }'
+assert 104 'int main() { return "\1500"[0];}'
 
 echo -e "\nEVERYTHING GOOD\n"
