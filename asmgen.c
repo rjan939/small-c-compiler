@@ -8,6 +8,7 @@ static char *argreg64[] = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
 static Obj *current_func;
 
 static void gen_expr(Node *node);
+static void gen_statement(Node *node);
 
 static int count(void) {
   static int i = 1;
@@ -31,7 +32,7 @@ static int align_to(int n, int align) {
 }
 
 static void gen_address(Node *node) {
-  switch (node->nodeType) {
+  switch (node->node_type) {
     case ND_VAR:
       if (node->var->is_local) {
         // Local variable
@@ -79,7 +80,7 @@ static void store(Type *type) {
 
 // Generate assembly code to handle the logic of given node 
 static void gen_expr(Node *node) {
-  switch (node->nodeType) {
+  switch (node->node_type) {
     case ND_NUM:
       printf("  mov $%d, %%rax\n", node->val);
       return;
@@ -104,6 +105,10 @@ static void gen_expr(Node *node) {
       gen_expr(node->right);
       store(node->type);
       return;
+    case ND_STATEMENT_EXPRESSION:
+      for (Node *n = node->body; n; n = n->next)
+        gen_statement(n);
+      return;
     case ND_FUNCALL:
       int nargs = 0;
       for (Node *arg = node->args; arg; arg = arg->next) {
@@ -126,7 +131,7 @@ static void gen_expr(Node *node) {
   gen_expr(node->left);
   pop("%rdi");
 
-  switch(node->nodeType) {
+  switch(node->node_type) {
     case ND_ADD:
       printf("  add %%rdi, %%rax\n");
       return;
@@ -146,13 +151,13 @@ static void gen_expr(Node *node) {
     case ND_LE:
       printf("  cmp %%rdi, %%rax\n");
 
-      if (node->nodeType == ND_EQ) 
+      if (node->node_type == ND_EQ) 
         printf("  sete %%al\n");
-      else if (node->nodeType == ND_NE) 
+      else if (node->node_type == ND_NE) 
         printf("  setne %%al\n");
-      else if (node->nodeType == ND_LT) 
+      else if (node->node_type == ND_LT) 
         printf("  setl %%al\n");
-      else if (node->nodeType == ND_LE)
+      else if (node->node_type == ND_LE)
         printf("  setle %%al\n");
       
       printf("  movzb %%al, %%rax\n");
@@ -165,7 +170,7 @@ static void gen_expr(Node *node) {
 
 static void gen_statement(Node *node) {
   int c;
-  switch (node->nodeType) {
+  switch (node->node_type) {
     case ND_IF:
       c = count();
       gen_expr(node->cond);

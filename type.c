@@ -60,7 +60,7 @@ void add_type(Node *node) {
     add_type(n);
   for (Node *n = node->args; n; n = n->next)
     add_type(n);
-  switch (node->nodeType) {
+  switch (node->node_type) {
     case ND_ADD:
     case ND_SUB:
     case ND_MUL:
@@ -94,6 +94,18 @@ void add_type(Node *node) {
       if (!node->left->type->base)
         error_tok(node->token, "invalid pointer dereference");
       node->type = node->left->type->base;
+      return;
+    case ND_STATEMENT_EXPRESSION:
+      if (node->body) {
+        Node *statement = node->body;
+        while (statement->next)
+          statement = statement->next;
+        if (statement->node_type == ND_STATEMENT) {
+          node->type = statement->left->type;
+          return;
+        }
+      }
+      error_tok(node->token, "statement expression returning void is not supported");
       return;
   }
 }

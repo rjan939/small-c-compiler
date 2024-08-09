@@ -45,7 +45,7 @@ typedef enum TokenType {
 } TokenType;
 
 typedef struct Token {
-  TokenType tokenType; // Kind of Token
+  TokenType token_type; // Kind of Token
   Token *next; // Next token
   int val; // If tokenType == T_NUM, its value
   char *loc; // Token location
@@ -106,6 +106,7 @@ typedef enum {
   ND_BLOCK, // {...}
   ND_FUNCALL, // Function call
   ND_STATEMENT, // Expression statement ";"
+  ND_STATEMENT_EXPRESSION, // Statement expression [GNU] C extension
   ND_NULL_STATEMENT, // ";" with no actual expression or declaration
   ND_VAR, // Variable
   ND_NUM, // Integer
@@ -113,7 +114,7 @@ typedef enum {
 
 // AST Node type
 typedef struct Node {
-  NodeType nodeType; // Type of Node
+  NodeType node_type; // Type of Node
   Node *next; // Next Node
   Token *token; // Representative token
   Type *type; // Type, like int or pointer to int or char, etc.
@@ -128,7 +129,7 @@ typedef struct Node {
   Node *init;
   Node *inc;
 
-  // ND_BLOCK
+  // ND_BLOCK or statement expression
   Node *body;
 
   // Function call

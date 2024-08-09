@@ -38,7 +38,7 @@ static Node *new_node(NodeType type, Token *token) {
   if (node == NULL) {
     error("not enough memory in system");
   }
-  node->nodeType = type;
+  node->node_type = type;
   node->token = token;
   return node;
 }
@@ -125,13 +125,13 @@ static Obj *new_string_literal(char *p, Type *type) {
 }
 
 static char *get_ident(Token *token) {
-  if (token->tokenType != T_IDENT)
+  if (token->token_type != T_IDENT)
     error_tok(token, "expected an identifier");
   return strndup(token->loc, token->len);
 }
 
 static int get_number(Token *token) {
-  if (token->tokenType != T_NUM)
+  if (token->token_type != T_NUM)
     error_tok(token, "expected a number");
   return token->val;
 }
@@ -190,7 +190,7 @@ static Type *declarator(Token **rest, Token *token, Type *type) {
   while (consume(&token, token, "*"))
     type = pointer_to(type);
   
-  if (token->tokenType != T_IDENT)
+  if (token->token_type != T_IDENT)
     error_tok(token, "expected a variable name");
   
   type = type_suffix(rest, token->next, type);
@@ -536,9 +536,19 @@ static Node *funcall(Token **rest, Token *token) {
   return node;
 }
 
-// primary = "(" expr ")" | "sizeof" unary | funcall | str | num
+// primary = "(" "{" stmt+ "}" ")"
+//         | "(" expr ")"
+//         | "sizeof" unary
+//         | funcall
+//         | str
+//         | num
 static Node *primary(Token **rest, Token* token) {
-  // Skip parenthesis(idk how to spell it)
+  if (equal(token, "(") && equal(token->next, "{")) {
+    Node *node = new_node(ND_STATEMENT_EXPRESSION, token);
+    node->body = compound_statement(&token, token->next->next)->body;
+    *rest = skip(token, ")");
+    return node;
+  }
   if (equal(token, "(")) {
     Node *node = expr(&token, token->next);
     *rest = skip(token, ")");
@@ -551,7 +561,7 @@ static Node *primary(Token **rest, Token* token) {
     return new_num(node->type->size, token);
   }
 
-  if (token->tokenType == T_IDENT) {
+  if (token->token_type == T_IDENT) {
     // Function call
     if (equal(token->next, "(")) {
       return funcall(rest, token);
@@ -565,13 +575,13 @@ static Node *primary(Token **rest, Token* token) {
     return new_var_node(var, token);
   }
 
-  if (token->tokenType == T_STR) {
+  if (token->token_type == T_STR) {
     Obj *var = new_string_literal(token->str, token->type);
     *rest = token->next;
     return new_var_node(var, token);
   }
 
-  if (token->tokenType == T_NUM) {
+  if (token->token_type == T_NUM) {
     Node *node = new_num(token->val, token);
     *rest = token->next;
     return node;
@@ -634,7 +644,7 @@ static bool is_function(Token *token) {
 Obj *parse(Token *token) {
   globals = NULL;
   
-  while (token->tokenType != T_EOF) {
+  while (token->token_type != T_EOF) {
     Type *basetype = declaration_specifier(&token, token);
     
     // Function

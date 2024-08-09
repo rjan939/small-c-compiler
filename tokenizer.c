@@ -73,7 +73,7 @@ static Token *new_token(TokenType type, char *start, char *end) {
     error("not enough memory in system");
   }
 
-  token->tokenType = type;
+  token->token_type = type;
   token->loc = start;
   token->len = end - start;
   return token;
@@ -225,9 +225,9 @@ static Token *read_string_literal(char *start) {
 }
 
 static void identify_keywords(Token *token) {
-  for (Token *curr = token; curr->tokenType != T_EOF; curr = curr->next) {
+  for (Token *curr = token; curr->token_type != T_EOF; curr = curr->next) {
     if (is_keyword(token)) {
-      curr->tokenType = T_KEYWORD;
+      curr->token_type = T_KEYWORD;
     }
   }
 }
@@ -270,7 +270,7 @@ Token *tokenize(char *p) {
       } while (is_valid_ident_character(*p));
       cur = cur->next = new_token(T_IDENT, start, p);
       if (is_keyword(cur)) {
-        cur->tokenType = T_KEYWORD;
+        cur->token_type = T_KEYWORD;
       }
       continue;
     }
