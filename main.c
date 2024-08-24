@@ -14,7 +14,7 @@ int main(int argc, char **argv) {
     error("%s: invalid number of arguments", argv[0]);
 
   // Tokenize and parse
-  Token *token = tokenize(argv[1]);
+  Token *token = tokenize_file(argv[1]);
   Obj *program = parse(token);
 
   gen_asm(program);

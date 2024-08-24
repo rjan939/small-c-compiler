@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <ctype.h>
+#include <errno.h>
 #include <assert.h>
 #include <stdbool.h>
 #include <string.h>
@@ -60,7 +61,7 @@ void error_tok(Token *token, char *fmt, ...);
 bool equal(Token *token, char *op);
 Token *skip(Token *token, char *op);
 bool consume(Token **rest, Token *token, char *str);
-Token *tokenize(char *input);
+Token *tokenize_file(char *filename);
 
 // parser.c
 

@@ -2,6 +2,9 @@
 
 
 static File *current_file;
+
+static char *current_filename;
+
 // temporary in order to test easier
 static char *current_input;
 
@@ -17,14 +20,35 @@ void error(char *fmt, ...) {
   exit(1);
 }
 
-// Reports error location and then exits
+// Reports error message in following format and exits
+//
+// main.c:10: x = y + 1;
+//                ^ <error message here>
 void verror_at(char *location, char *fmt, va_list argument_pointer) {
-  int position = location - current_input;
-  fprintf(stderr, "%s\n", current_input);
+  // Find a line containing `location`
+  char *line = location;
+  while (current_input < line && line[-1] != '\n')
+    line--;
+  
+  char *end = location;
+  while (*end != '\n')
+    end++;
+  
+  // Get line num
+  int line_num = 1;
+  for (char *p = current_input; p < line; p++)
+    if (*p == '\n')
+      line_num++;
+  
+  // Print out the line
+  int indent = fprintf(stderr, "%s:%d: ", current_filename, line_num);
+  fprintf(stderr, "%.*s\n", (int) (end - line), line);
+
+  // Show error message
+  int position = location - line + indent;
   fprintf(stderr, "%*s", position, "");
   fprintf(stderr, "^ ");
   vfprintf(stderr, fmt, argument_pointer);
-  fprintf(stderr, "\n");
   va_end(argument_pointer);
   exit(1);
 }
@@ -108,24 +132,6 @@ static int get_punct_length(char *p) {
     return 2;
 
   return ispunct(*p) ? 1 : 0;
-}
-
-
-Token *tokenized(File *file) {
-  current_file = file;
-  char *content = file->contents;
- 
-  while (*content) {
-        // Check if this starts with a "//" and skip it
-        // if yes, do another while loop to keep incrementing content until it hits a new line and then start at the top of the loop again
-        // Check if this starts with a "/*"
-        // if yes, find the first occurence of "*/" after incrementing content by 2
-        // if its not found, throw an error cause they didnt close the block comment and continue
-        // Check if this starts with "\n"
-
-        // List of all cases: //, /*, \n, , 1-9, "", u8\"", u\"", "L\"", "U\"", \, u', L', U', identifiers, keywords, punctuators, 
-  }
-  return NULL;
 }
 
 static bool is_keyword(Token *token) {
@@ -233,7 +239,7 @@ static void identify_keywords(Token *token) {
 }
 
 // Tokenize 'current_file' and returns new tokens
-Token *tokenize(char *p) {
+static Token *tokenize(char *filename, char *p) {
   current_input = p;
   Token head = {};
   Token *cur = &head;
@@ -343,13 +349,14 @@ Token *tokenize_file(char *path) {
   if (!memcmp(p, "\xef\xbb\xbf", 3))
     p += 3;
   
-  static int file_num;
+  /*static int file_num;
   File* file = new_file(path, file_num + 1, p);
 
+   DONT USE THIS CODE RN ITS BROKEN
   input_files = realloc(input_files, sizeof(char *) * (file_num + 2));
   input_files[file_num] = file;
   input_files[file_num + 1] = NULL;
-  file_num++;
+  file_num++;*/
 
-  return NULL;
+  return tokenize(path, p);
 }
