@@ -63,6 +63,7 @@ int main(int argc, char **argv) {
   Obj *program = parse(token);
 
   FILE* out = open_file(opt_o);
+  fprintf(out, ".file 1 \"%s\"\n", input_path);
   gen_asm(program, out);
   free_memory(token, program);
   return 0;

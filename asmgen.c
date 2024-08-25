@@ -89,6 +89,8 @@ static void store(Type *type) {
 
 // Generate assembly code to handle the logic of given node 
 static void gen_expr(Node *node) {
+  println(" .loc 1 %d", node->token->line_num);
+
   switch (node->node_type) {
     case ND_NUM:
       println("  mov $%d, %%rax", node->val);
@@ -178,7 +180,9 @@ static void gen_expr(Node *node) {
 }
 
 static void gen_statement(Node *node) {
-  int c;
+  println(" .loc 1 %d", node->token->line_num);
+
+  int c = 0;
   switch (node->node_type) {
     case ND_IF:
       c = count();
