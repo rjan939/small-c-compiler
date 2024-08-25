@@ -49,6 +49,7 @@ void verror_at(char *location, char *fmt, va_list argument_pointer) {
   fprintf(stderr, "%*s", position, "");
   fprintf(stderr, "^ ");
   vfprintf(stderr, fmt, argument_pointer);
+  fprintf(stderr, "\n");
   va_end(argument_pointer);
   exit(1);
 }
