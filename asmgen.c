@@ -1,6 +1,7 @@
 #include "token.h"
 
 // Code generator
+static FILE *output_file;
 static int depth;
 
 static char *argreg8[] = {"%dil", "%sil", "%dl", "%cl", "%r8b", "%r9b"};
@@ -13,9 +14,9 @@ static void gen_statement(Node *node);
 static void println(char *fmt, ...) {
   va_list argument_pointer;
   va_start(argument_pointer, fmt);
-  vprintf(fmt, argument_pointer);
+  vfprintf(output_file, fmt, argument_pointer);
   va_end(argument_pointer);
-  printf("\n");
+  fprintf(output_file, "\n");
 }
 
 static int count(void) {
@@ -296,7 +297,9 @@ static void emit_text(Obj *program) {
   }
 }
 
-void gen_asm(Obj *program) {
+void gen_asm(Obj *program, FILE *out) {
+  output_file = out;
+
   assign_lvar_offsets(program);
   emit_data(program);
   emit_text(program);

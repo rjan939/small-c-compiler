@@ -190,7 +190,7 @@ void add_type(Node *node);
 
 // asmgen.c
 
-void gen_asm(Obj *program);
+void gen_asm(Obj *program, FILE *out);
 
 
 // Memory management

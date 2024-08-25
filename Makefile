@@ -11,6 +11,7 @@ $(OBJS): token.h
 
 test: main
 	./test.sh
+	./test-driver.sh
 
 clean:
 	rm -f main *.o *~ tmp*
