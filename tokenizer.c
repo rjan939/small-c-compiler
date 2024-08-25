@@ -24,7 +24,7 @@ void error(char *fmt, ...) {
 //
 // main.c:10: x = y + 1;
 //                ^ <error message here>
-void verror_at(char *location, char *fmt, va_list argument_pointer) {
+void verror_at(int line_num, char *location, char *fmt, va_list argument_pointer) {
   // Find a line containing `location`
   char *line = location;
   while (current_input < line && line[-1] != '\n')
@@ -33,12 +33,6 @@ void verror_at(char *location, char *fmt, va_list argument_pointer) {
   char *end = location;
   while (*end != '\n')
     end++;
-  
-  // Get line num
-  int line_num = 1;
-  for (char *p = current_input; p < line; p++)
-    if (*p == '\n')
-      line_num++;
   
   // Print out the line
   int indent = fprintf(stderr, "%s:%d: ", current_filename, line_num);
@@ -55,15 +49,32 @@ void verror_at(char *location, char *fmt, va_list argument_pointer) {
 }
 
 void error_at(char *location, char *fmt, ...) {
+  int line_num = 1;
+  for (char *p = current_input; p < location; p++)
+    if (*p == '\n')
+      line_num++;
   va_list argument_pointer;
   va_start(argument_pointer, fmt);
-  verror_at(location, fmt, argument_pointer);
+  verror_at(line_num, location, fmt, argument_pointer);
 }
 
 void error_tok(Token *token, char *fmt, ...) {
   va_list argument_pointer;
   va_start(argument_pointer, fmt);
-  verror_at(token->loc, fmt, argument_pointer);
+  verror_at(token->line_num, token->loc, fmt, argument_pointer);
+}
+
+static void add_line_numbers(Token *token) {
+  char *p = current_input;
+  int n = 1;
+  do {
+    if (p == token->loc) {
+      token->line_num = n;
+      token = token->next;
+    }
+    if (*p == '\n')
+      n++;
+  } while(*p++);
 }
 
 
@@ -232,15 +243,14 @@ static Token *read_string_literal(char *start) {
 }
 
 static void identify_keywords(Token *token) {
-  for (Token *curr = token; curr->token_type != T_EOF; curr = curr->next) {
-    if (is_keyword(token)) {
+  for (Token *curr = token; curr->token_type != T_EOF; curr = curr->next) 
+    if (is_keyword(curr)) 
       curr->token_type = T_KEYWORD;
-    }
-  }
 }
 
 // Tokenize 'current_file' and returns new tokens
 static Token *tokenize(char *filename, char *p) {
+  current_filename = filename;
   current_input = p;
   Token head = {};
   Token *cur = &head;
@@ -292,9 +302,6 @@ static Token *tokenize(char *filename, char *p) {
         p++;
       } while (is_valid_ident_character(*p));
       cur = cur->next = new_token(T_IDENT, start, p);
-      if (is_keyword(cur)) {
-        cur->token_type = T_KEYWORD;
-      }
       continue;
     }
 
@@ -308,7 +315,8 @@ static Token *tokenize(char *filename, char *p) {
     error_at(p, "invalid token");
   }
   cur = cur->next = new_token(T_EOF, p, p);
-  //identify_keywords(head.next);
+  add_line_numbers(head.next);
+  identify_keywords(head.next);
   return head.next;
 }
   

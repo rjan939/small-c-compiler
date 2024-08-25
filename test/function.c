@@ -46,4 +46,5 @@ int main() {
   ASSERT(1, ({ sub_char(7, 3, 3); }));
 
   printf("\nEVERYTHING GOOD\n");
+  return 0;
 }

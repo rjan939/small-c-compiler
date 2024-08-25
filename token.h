@@ -53,6 +53,8 @@ typedef struct Token {
   int len; // Token length
   Type *type; // Used if T_STR
   char *str; // String literal contents including terminating '\0'
+
+  int line_num;
 } Token;
 
 void error(char *fmt, ...);

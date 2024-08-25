@@ -1,12 +1,12 @@
 #!/bin/bash
 
 cleanup() {
-  cd ~/small-c-compiler
+  rm -rf $tmp
   make clean
 }
 
 tmp=`mktemp -d /tmp/compiler-test-XXXXXX`
-trap 'rm -rf $tmp' cleanup INT TERM HUP EXIT
+trap cleanup INT TERM HUP EXIT
 echo > $tmp/empty.c
 
 check() {

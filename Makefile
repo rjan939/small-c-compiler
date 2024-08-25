@@ -19,8 +19,9 @@ test/%.exe: main test/%.c
 				$(CC) -o $@ test/$*.s -xc test/common
 
 test: $(TESTS)
-				for i in $^; do echo $$i; ./$$i || exit 1; echo; done
-				test/driver.sh
+	for i in $^; do echo $$i; ./$$i || exit 1; echo; done
+	test/driver.sh
+
 clean:
 	rm -rf main tmp* $(TESTS) test/*.s test/*.exe
 	find * -type f '(' -name '*~' -o -name '*.o' ')' -exec rm {} ';'
