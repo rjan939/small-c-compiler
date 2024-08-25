@@ -1,9 +1,26 @@
 // This file is a recursive descent parser for C
 #include "token.h"
 
+// Scope for local or global variables
+typedef struct var_scope var_scope;
+struct var_scope {
+  var_scope *next;
+  char *name;
+  Obj *var;
+};
+
+// Block scope
+typedef struct Scope Scope;
+struct Scope {
+  Scope *next;
+  var_scope *vars;
+};
+
 // Local variables in the parser
 static Obj *locals;
 static Obj *globals;
+
+static Scope *scope = &(Scope){};
 
 static Type *declaration_specifier(Token **rest, Token *token);
 static Type *declarator(Token **rest, Token *token, Type *type);
@@ -21,16 +38,32 @@ static Node *postfix(Token **rest, Token *token);
 static Node *unary(Token **rest, Token *token);
 static Node *primary(Token **rest, Token *token);
 
-// Find a local variable based on name
+static void enter_scope(void) {
+  Scope *sc = calloc(1, sizeof(Scope));
+  sc->next = scope;
+  scope = sc;
+}
+
+static void leave_scope(void) {
+  scope = scope->next;
+}
+
+// Find a variable based on name
 static Obj *find_var(Token *token) {
-  for (Obj *var = locals; var; var = var->next)
-    if (strlen(var->name) == token->len && !strncmp(token->loc, var->name, token->len))
-      return var;
-  
-  for (Obj *var = globals; var; var = var->next)
-    if (strlen(var->name) == token->len && !strncmp(token->loc, var->name, token->len))
-      return var;
+  for (Scope *sc = scope; sc; sc = sc->next)
+    for (var_scope *sc2 = sc->vars; sc2; sc2 = sc2->next)
+      if (equal(token, sc2->name))
+        return sc2->var;
   return NULL;
+}
+
+static var_scope *push_scope(char *name, Obj *var) {
+  var_scope *sc = calloc(1, sizeof(var_scope));
+  sc->name = name;
+  sc->var = var;
+  sc->next = scope->vars;
+  scope->vars = sc;
+  return sc;
 }
 
 static Node *new_node(NodeType type, Token *token) {
@@ -78,6 +111,7 @@ static Obj *new_var(char *name, Type *type) {
     error("not enough memory in system for var");
   var->name = name;
   var->type = type;
+  push_scope(name, var);
   return var;
 }
 
@@ -298,6 +332,9 @@ static Node *compound_statement(Token **rest, Token* token) {
   Node *node = new_node(ND_BLOCK, token);
   Node head = {};
   Node *cur = &head;
+
+  enter_scope();
+
   while (!equal(token, "}")) {
     if (is_typename(token))
       cur = cur->next = declaration(&token, token);
@@ -306,6 +343,7 @@ static Node *compound_statement(Token **rest, Token* token) {
     add_type(cur);
   }
 
+  leave_scope();
   node->body = head.next;
   *rest = token->next;
   return node;
@@ -604,6 +642,7 @@ static Token *function(Token *token, Type *basetype) {
   func->is_function = true;
 
   locals = NULL;
+  enter_scope();
 
   create_param_lvars(type->params);
   func->params = locals;
@@ -611,6 +650,7 @@ static Token *function(Token *token, Type *basetype) {
   token = skip(token, "{");
   func->body = compound_statement(&token, token);
   func->locals = locals;
+  leave_scope();
   return token;
 }
 

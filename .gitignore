@@ -4,3 +4,5 @@ tmp*
 a.out
 test.c
 main
+.vscode/
+blah.txt
