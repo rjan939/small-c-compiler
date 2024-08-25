@@ -1,16 +1,16 @@
-#!/bin/sh
+#!/bin/bash
 
 cleanup() {
+  cd ~/small-c-compiler
   make clean
 }
 
-trap cleanup EXIT
 tmp=`mktemp -d /tmp/compiler-test-XXXXXX`
-trap 'rm -rf $tmp' INT TERM HUP EXIT
+trap 'rm -rf $tmp' cleanup INT TERM HUP EXIT
 echo > $tmp/empty.c
 
 check() {
-  if [ $? -eq 0]; then
+  if [ $? -eq 0 ]; then
     echo "testing $1 ... passed"
   else
     echo "testing $1 ... failed"
@@ -28,4 +28,4 @@ check -o
 ./main --help 2>&1 | grep -q main
 check --help
 
-echo EVERYTHING GOOD
+echo -e "\nEVERYTHING GOOD\n"

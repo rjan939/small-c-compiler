@@ -6,3 +6,4 @@ test.c
 main
 .vscode/
 blah.txt
+/test/*.exe
