@@ -54,6 +54,10 @@ static void gen_address(Node *node) {
     case ND_DEREF:
       gen_expr(node->left);
       return;
+    case ND_COMMA:
+      gen_expr(node->left);
+      gen_address(node->right);
+      return;
   }
 
 
@@ -119,6 +123,10 @@ static void gen_expr(Node *node) {
     case ND_STATEMENT_EXPRESSION:
       for (Node *n = node->body; n; n = n->next)
         gen_statement(n);
+      return;
+    case ND_COMMA:
+      gen_expr(node->left);
+      gen_expr(node->right);
       return;
     case ND_FUNCALL:
       int nargs = 0;

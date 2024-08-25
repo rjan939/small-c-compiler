@@ -361,9 +361,13 @@ static Node *expr_statement(Token **rest, Token *token) {
   return node;
 }
 
-// expr = assign
+// expr = assign ("," expr)?
 static Node *expr(Token **rest, Token *token) {
-  return assign(rest, token);
+  Node *node = assign(&token, token);
+  if (equal(token, ","))
+    return new_binary(ND_COMMA, node, expr(rest, token->next), token);
+  *rest = token;
+  return node;
 }
 
 // assign = equality ("=" assign)?
