@@ -14,7 +14,7 @@ static char *opt_o;
 static char *input_path;
 
 static void usage(int status) {
-  fprintf(stderr, "chibicc [ -o <path> ] <file>\n");
+  fprintf(stderr, "main [ -o <path> ] <file>\n");
   exit(status);
 }
 
@@ -23,7 +23,7 @@ static void parse_args(int argc, char **argv) {
     if (!strcmp(argv[i], "--help"))
       usage(0);
     
-    if (!strcmp(argv[1], "-o")) {
+    if (!strcmp(argv[i], "-o")) {
       if (!argv[++i])
         usage(1);
       opt_o = argv[i];
