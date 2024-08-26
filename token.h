@@ -166,6 +166,7 @@ struct Type {
   TypeKind kind;
 
   int size; // sizeof() value
+  int align; // alignment
   
   // Pointer-to or array-of type
   // Intentionally use same member to represent pointer/array duality in C
@@ -211,6 +212,7 @@ void add_type(Node *node);
 // asmgen.c
 
 void gen_asm(Obj *program, FILE *out);
+int align_to(int n, int align);
 
 
 // Memory management

@@ -1,7 +1,17 @@
 #include "token.h"
 
-Type *ty_char = &(Type) {TY_CHAR, 1};
-Type *ty_int = &(Type) {TY_INT, 8};
+Type *ty_char = &(Type) {TY_CHAR, 1, 1};
+Type *ty_int = &(Type) {TY_INT, 8, 8};
+
+static Type *new_type(TypeKind kind, int size, int align) {
+  Type *type = calloc(1, sizeof(Type));
+  if (type == NULL) 
+    error("not enough memory in system to allocate for type");
+  type->kind = kind;
+  type->size = size;
+  type->align = align;
+  return type;
+}
 
 bool is_integer(Type *type) {
   return type->kind == TY_CHAR || type->kind == TY_INT;
@@ -16,11 +26,7 @@ Type *copy_type(Type *type) {
 }
 
 Type *pointer_to(Type *base) {
-  Type *type = calloc(1, sizeof(Type));
-  if (type == NULL)
-    error("Not enough memory in system");
-  type->kind = TY_PTR;
-  type->size = 8;
+  Type *type = new_type(TY_PTR, 8, 8);
   type->base = base;
   return type;
 }
@@ -34,11 +40,7 @@ Type *func_type(Type *return_type) {
 }
 
 Type *array_of(Type *base, int len) {
-  Type *type = calloc(1, sizeof(Type));
-  if (type == NULL)
-    error("Not enough memory in system");
-  type->kind = TY_ARRAY;
-  type->size = base->size * len;
+  Type *type = new_type(TY_ARRAY, base->size * len, base->align);
   type->base = base;
   type->array_len = len;
   return type;

@@ -42,6 +42,8 @@ static Node *primary(Token **rest, Token *token);
 // TODO: free scopes
 static void enter_scope(void) {
   Scope *sc = calloc(1, sizeof(Scope));
+  if (sc == NULL)
+    error("not enough memory in system to allocate scope");
   sc->next = scope;
   scope = sc;
 }
@@ -62,6 +64,8 @@ static Obj *find_var(Token *token) {
 // TODO: free var_scopes
 static var_scope *push_scope(char *name, Obj *var) {
   var_scope *sc = calloc(1, sizeof(var_scope));
+  if (sc == NULL)
+    error("not enough memory in system to allocate var scope");
   sc->name = name;
   sc->var = var;
   sc->next = scope->vars;
@@ -567,6 +571,8 @@ static void struct_members(Token **rest, Token *token, Type *type) {
         token = skip(token, ",");
       
       Member *member = calloc(1, sizeof(Member));
+      if (member == NULL)
+        error("not enough memory to allocate for member");
       member->type = declarator(&token, token, basetype);
       member->name = member->type->name;
       cur = cur->next = member;
@@ -585,14 +591,19 @@ static Type *struct_declaration(Token **rest, Token *token) {
   Type *type = calloc(1, sizeof(Type));
   type->kind = TY_STRUCT;
   struct_members(rest, token, type);
+  type->align = 1;
 
   // Assign offsets
   int offset = 0;
   for (Member *member = type->members; member; member = member->next) {
+    offset = align_to(offset, member->type->align);
     member->offset = offset;
     offset += member->type->size;
+
+    if (type->align < member->type->align)
+      type->align = member->type->align;
   }
-  type->size = offset;
+  type->size = align_to(offset, type->align);
 
   return type;
 }
