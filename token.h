@@ -66,6 +66,9 @@ Token *skip(Token *token, char *op);
 bool consume(Token **rest, Token *token, char *str);
 Token *tokenize_file(char *filename);
 
+#define unreachable() \
+  error("internal error at %s:%d", __FILE__, __LINE__);
+
 // parser.c
 
 typedef struct Obj Obj;

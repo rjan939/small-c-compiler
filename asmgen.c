@@ -5,6 +5,7 @@ static FILE *output_file;
 static int depth;
 
 static char *argreg8[] = {"%dil", "%sil", "%dl", "%cl", "%r8b", "%r9b"};
+static char *argreg32[] = {"%edi", "%esi", "%edx", "%ecx", "%r8d", "%r9d"};
 static char *argreg64[] = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
 static Obj *current_func;
 
@@ -80,6 +81,8 @@ static void load(Type *type) {
 
   if (type->size == 1)
     println("  movsbq (%%rax), %%rax");
+  else if (type->size == 4)
+    println(" movsxd (%%rax), %%rax");
   else
     println("  mov (%%rax), %%rax");
 }
@@ -95,9 +98,11 @@ static void store(Type *type) {
     }
     return;
   }
-  
+
   if (type->size == 1)
     println("  mov %%al, (%%rdi)");
+  else if (type->size == 4)
+    println(" mov %%eax, (%%rdi)");
   else
     println("  mov %%rax, (%%rdi)");
 }
@@ -286,6 +291,21 @@ static void emit_data(Obj *program) {
   }
 }
 
+static void store_gp(int r, int offset, int sz) {
+  switch (sz) {
+    case 1:
+      println(" mov %s, %d(%%rbp)", argreg8[r], offset);
+      return;
+    case 4:
+      println(" mov %s, %d(%%rbp)", argreg32[r], offset);
+      return;
+    case 8:
+      println(" mov %s, %d(%%rbp)", argreg64[r], offset);
+      return;
+  }
+  unreachable();
+}
+
 static void emit_text(Obj *program) {
   for (Obj *func = program; func; func = func->next) {
     if (!func->is_function)
@@ -305,10 +325,7 @@ static void emit_text(Obj *program) {
     // Save passed-by-register args to the stack
     int i = 0;
     for (Obj *var = func->params; var; var = var->next)
-      if (var->type->size == 1)
-        println("  mov %s, %d(%%rbp)", argreg8[i++], var->offset);
-      else
-        println("  mov %s, %d(%%rbp)", argreg64[i++], var->offset);
+      store_gp(i++, var->offset, var->type->size);
 
     // Emit code
     gen_statement(func->body);
