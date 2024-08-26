@@ -8,4 +8,5 @@ int main() {
   ASSERT(0, ({ union { int a; char b[4]; } x; x.a = 515; x.b[3]; }));
 
   printf("\nEVERYTHING GOOD\n");
+  return 0;
 }
