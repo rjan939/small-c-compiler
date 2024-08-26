@@ -34,10 +34,12 @@ static Node *equality(Token **rest, Token *token);
 static Node *relational(Token **rest, Token *token);
 static Node *add(Token **rest, Token *token);
 static Node *mul(Token **rest, Token *token);
+static Type *struct_declaration(Token **rest, Token *token);
 static Node *postfix(Token **rest, Token *token);
 static Node *unary(Token **rest, Token *token);
 static Node *primary(Token **rest, Token *token);
 
+// TODO: free scopes
 static void enter_scope(void) {
   Scope *sc = calloc(1, sizeof(Scope));
   sc->next = scope;
@@ -57,6 +59,7 @@ static Obj *find_var(Token *token) {
   return NULL;
 }
 
+// TODO: free var_scopes
 static var_scope *push_scope(char *name, Obj *var) {
   var_scope *sc = calloc(1, sizeof(var_scope));
   sc->name = name;
@@ -170,15 +173,22 @@ static int get_number(Token *token) {
   return token->val;
 }
 
-// declaration-specifier = "char" | "int"
+// declaration-specifier = "char" | "int" | struct-declaration
 static Type *declaration_specifier(Token **rest, Token *token) {
   if (equal(token, "char")) {
     *rest = token->next;
     return ty_char;
   }
 
-  *rest = skip(token, "int");
-  return ty_int;
+  if (equal(token, "int")) {
+    *rest = token->next;
+    return ty_int;
+  }
+
+  if (equal(token, "struct"))
+    return struct_declaration(rest, token->next);
+  
+  error_tok(token, "typename expected");
 }
 
 // func-params = (param ("," param)*)? ")"
@@ -264,7 +274,7 @@ static Node *declaration(Token **rest, Token *token) {
 
 // Returns true if token represents a type
 static bool is_typename(Token *token) {
-  return equal(token, "char") || equal(token, "int");
+  return equal(token, "char") || equal(token, "int") || equal(token, "struct");
 }
 
 // stmt = "return" expr ";" 
@@ -541,19 +551,93 @@ static Node *unary(Token **rest, Token *token) {
   return postfix(rest, token);
 }
 
+
+// TODO: free struct memory
+// struct-members = (declaration-specifier declarator ("," declarator)* ";")*
+static void struct_members(Token **rest, Token *token, Type *type) {
+  Member head = {};
+  Member *cur = &head;
+
+  while (!equal(token, "}")) {
+    Type *basetype = declaration_specifier(&token, token);
+    int i = 0;
+
+    while (!consume(&token, token, ";")) {
+      if (i++)
+        token = skip(token, ",");
+      
+      Member *member = calloc(1, sizeof(Member));
+      member->type = declarator(&token, token, basetype);
+      member->name = member->type->name;
+      cur = cur->next = member;
+    }
+  }
+  
+  *rest = token->next;
+  type->members = head.next;
+}
+
+// struct-declaration = "{" struct-members
+static Type *struct_declaration(Token **rest, Token *token) {
+  token = skip(token, "{");
+
+  // Build struct object
+  Type *type = calloc(1, sizeof(Type));
+  type->kind = TY_STRUCT;
+  struct_members(rest, token, type);
+
+  // Assign offsets
+  int offset = 0;
+  for (Member *member = type->members; member; member = member->next) {
+    member->offset = offset;
+    offset += member->type->size;
+  }
+  type->size = offset;
+
+  return type;
+}
+
+static Member *get_struct_member(Type *type, Token *token) {
+  for (Member *member = type->members; member; member = member->next) 
+    if (member->name->len == token->len &&
+        !strncmp(member->name->loc, token->loc, token->len))
+      return member;
+    error_tok(token, "no such member");
+}
+
+static Node *struct_ref(Node *left, Token *token) {
+  add_type(left);
+  if (left->type->kind != TY_STRUCT)
+    error_tok(left->token, "not a struct");
+  
+  Node *node = new_unary(ND_MEMBER, left, token);
+  node->member = get_struct_member(left->type, token);
+  return node;
+}
+
 // postfix = primary ("[" expr "]")*
 static Node *postfix(Token **rest, Token *token) {
   Node *node = primary(&token, token);
 
-  while (equal(token, "[")) {
-    // x[y] is short for *(x + y)
-    Token *start = token;
-    Node *index = expr(&token, token->next);
-    token = skip(token, "]");
-    node = new_unary(ND_DEREF, new_add(node, index, start), start);
-  }
-  *rest = token;
-  return node;
+  for (;;) {
+    if (equal(token, "[")) {
+      // x[y] is short for *(x + y)
+      Token *start = token;
+      Node *index = expr(&token, token->next);
+      token = skip(token, "]");
+      node = new_unary(ND_DEREF, new_add(node, index, start), start);
+      continue;
+    }
+
+    if (equal(token, ".")) {
+      node = struct_ref(node, token->next);
+      token = token->next->next;
+      continue;
+    }
+
+    *rest = token;
+    return node;
+  } 
 }
 
 // funcall = ident "(" (assign ("," assign)*)? ")"

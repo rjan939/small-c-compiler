@@ -58,6 +58,10 @@ static void gen_address(Node *node) {
       gen_expr(node->left);
       gen_address(node->right);
       return;
+    case ND_MEMBER:
+      gen_address(node->left);
+      println(" add $%d, %%rax", node->member->offset);
+      return;
   }
 
 
@@ -104,6 +108,7 @@ static void gen_expr(Node *node) {
       println("  neg %%rax");
       return;
     case ND_VAR:
+    case ND_MEMBER:
       gen_address(node);
       load(node->type);
       return;
