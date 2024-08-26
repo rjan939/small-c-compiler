@@ -4,7 +4,7 @@ SRCS = $(wildcard *.c)
 
 OBJS = $(SRCS:.c=.o)
 
-TEST_SRCS = $(wildcard test/*.c)
+TEST_SRCS = $(filter-out test/testfile.c, $(wildcard test/*.c))
 TESTS = $(TEST_SRCS:.c=.exe)
 
 default : main test clean
