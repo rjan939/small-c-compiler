@@ -216,6 +216,11 @@ static Type *declaration_specifier(Token **rest, Token *token) {
     return ty_char;
   }
 
+  if (equal(token, "short")) {
+    *rest = token->next;
+    return ty_short;
+  }
+
   if (equal(token, "int")) {
     *rest = token->next;
     return ty_int;

@@ -5,6 +5,7 @@ static FILE *output_file;
 static int depth;
 
 static char *argreg8[] = {"%dil", "%sil", "%dl", "%cl", "%r8b", "%r9b"};
+static char *argreg16[] = {"%di", "%si", "%dx", "%cx", "%r8w", "%r9w"};
 static char *argreg32[] = {"%edi", "%esi", "%edx", "%ecx", "%r8d", "%r9d"};
 static char *argreg64[] = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
 static Obj *current_func;
@@ -81,6 +82,8 @@ static void load(Type *type) {
 
   if (type->size == 1)
     println("  movsbq (%%rax), %%rax");
+  else if (type->size == 2)
+    println(" movswq (%%rax), %%rax");
   else if (type->size == 4)
     println(" movsxd (%%rax), %%rax");
   else
@@ -101,6 +104,8 @@ static void store(Type *type) {
 
   if (type->size == 1)
     println("  mov %%al, (%%rdi)");
+  else if (type->size == 2)
+    println(" mov %%ax, (%%rdi)");
   else if (type->size == 4)
     println(" mov %%eax, (%%rdi)");
   else
@@ -295,6 +300,9 @@ static void store_gp(int r, int offset, int sz) {
   switch (sz) {
     case 1:
       println(" mov %s, %d(%%rbp)", argreg8[r], offset);
+      return;
+    case 2:
+      println(" mov %s, %d(%%rbp)", argreg16[r], offset);
       return;
     case 4:
       println(" mov %s, %d(%%rbp)", argreg32[r], offset);
