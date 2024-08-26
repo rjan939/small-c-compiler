@@ -278,11 +278,19 @@ static Type *type_suffix(Token **rest, Token *token, Type *type) {
   return type;
 }
 
-// declarator = "*"* ident type-suffix
+// declarator = "*"* ("(" ident ")" | "(" declarator ")" | ident) type-suffix
 static Type *declarator(Token **rest, Token *token, Type *type) {
   while (consume(&token, token, "*"))
     type = pointer_to(type);
   
+  if (equal(token, "(")) {
+    Token *start = token;
+    Type dummy = {};
+    declarator(&token, start->next, &dummy);
+    token = skip(token, ")");
+    type = type_suffix(rest, token, type);
+    return declarator(&token, start->next, type);
+  }
   if (token->token_type != T_IDENT)
     error_tok(token, "expected a variable name");
   
