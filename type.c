@@ -1,5 +1,6 @@
 #include "token.h"
 
+Type *ty_void = &(Type) {TY_VOID, 1, 1};
 Type *ty_char = &(Type) {TY_CHAR, 1, 1};
 Type *ty_short = &(Type) {TY_SHORT, 2, 2};
 Type *ty_int = &(Type) {TY_INT, 4, 4};
@@ -105,6 +106,8 @@ void add_type(Node *node) {
     case ND_DEREF:
       if (!node->left->type->base)
         error_tok(node->token, "invalid pointer dereference");
+      if (node->left->type->base->kind == TY_VOID)
+        error_tok(node->token, "dereferencing a void pointer");
       node->type = node->left->type->base;
       return;
     case ND_STATEMENT_EXPRESSION:

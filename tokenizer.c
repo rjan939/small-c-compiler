@@ -151,7 +151,7 @@ static int get_punct_length(char *p) {
 static bool is_keyword(Token *token) {
   static char *keywords[] = {
     "return", "if", "else", "for", "while", "int", "sizeof", "char",
-    "struct", "union", "short", "long",
+    "struct", "union", "short", "long", "void",
   };
   
   for (int i = 0; i < sizeof(keywords) / sizeof(*keywords); i++) {

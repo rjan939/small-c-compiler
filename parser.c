@@ -211,6 +211,11 @@ static void push_tag_scope(Token *token, Type *type) {
 
 // declaration-specifier = "char" | "short" | "int" | "long" | struct-declaration | union-declaration
 static Type *declaration_specifier(Token **rest, Token *token) {
+  if (equal(token, "void")) {
+    *rest = token->next;
+    return ty_void;
+  }
+
   if (equal(token, "char")) {
     *rest = token->next;
     return ty_char;
@@ -312,6 +317,8 @@ static Node *declaration(Token **rest, Token *token) {
       token = skip(token, ",");
     
     Type *type = declarator(&token, token, basetype);
+    if (type->kind == TY_VOID)
+      error_tok(token, "variable declared void");
     Obj *var = new_lvar(get_ident(type->name), type);
     
     if (!equal(token, "="))
@@ -331,8 +338,14 @@ static Node *declaration(Token **rest, Token *token) {
 
 // Returns true if token represents a type
 static bool is_typename(Token *token) {
-  return equal(token, "char") || equal(token, "short") || equal(token, "int") || equal(token, "long") || 
-        equal(token, "struct") || equal(token, "union");
+  static char *typenames[] = { 
+    "void", "char", "short", "int", "long", "struct", "union", 
+  };
+  
+  for (int i = 0; i < sizeof(typenames) / sizeof(*typenames); i++)
+    if (equal(token, typenames[i]))
+      return true;
+  return false;
 }
 
 // stmt = "return" expr ";" 
