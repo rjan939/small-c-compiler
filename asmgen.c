@@ -70,7 +70,7 @@ static void gen_address(Node *node) {
 
 // Load a value from where %rax is pointing to
 static void load(Type *type) {
-  if (type->kind == TY_ARRAY) {
+  if (type->kind == TY_ARRAY || type->kind == TY_STRUCT || type->kind == TY_UNION) {
     // If it is an array, dont load a value to the
     // register because you cant load entire arrays to regs
     // the result of an evaluation of an array becomes
@@ -88,6 +88,14 @@ static void load(Type *type) {
 static void store(Type *type) {
   pop("%rdi");
 
+  if (type->kind == TY_STRUCT || type->kind == TY_UNION) {
+    for (int i = 0; i < type->size; i++) {
+      println("  mov %d(%%rax), %%r8b", i);
+      println("  mov %%r8b, %d(%%rdi)", i);
+    }
+    return;
+  }
+  
   if (type->size == 1)
     println("  mov %%al, (%%rdi)");
   else
