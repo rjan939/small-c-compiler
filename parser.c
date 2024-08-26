@@ -841,6 +841,10 @@ static Token *function(Token *token, Type *basetype) {
 
   Obj *func = new_gvar(get_ident(type->name), type);
   func->is_function = true;
+  func->is_definition = !consume(&token, token, ";");
+
+  if (!func->is_definition)
+    return token;
 
   locals = NULL;
   enter_scope();

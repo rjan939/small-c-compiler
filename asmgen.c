@@ -316,7 +316,7 @@ static void store_gp(int r, int offset, int sz) {
 
 static void emit_text(Obj *program) {
   for (Obj *func = program; func; func = func->next) {
-    if (!func->is_function)
+    if (!func->is_function || !func->is_definition)
       continue;
 
     println("  .globl %s", func->name);
