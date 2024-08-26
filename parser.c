@@ -9,15 +9,28 @@ struct var_scope {
   Obj *var;
 };
 
+// Scope for struct tags
+typedef struct tag_scope tag_scope;
+struct tag_scope {
+  tag_scope *next;
+  char *name;
+  Type *type;
+};
+
 // Block scope
 typedef struct Scope Scope;
 struct Scope {
   Scope *next;
+
+  // C has two block scopes; one is for vars and the other is for struct tags
   var_scope *vars;
+  tag_scope *tags;
 };
 
 // Local variables in the parser
 static Obj *locals;
+
+// Global variables in this list
 static Obj *globals;
 
 static Scope *scope = &(Scope){};
@@ -58,6 +71,14 @@ static Obj *find_var(Token *token) {
     for (var_scope *sc2 = sc->vars; sc2; sc2 = sc2->next)
       if (equal(token, sc2->name))
         return sc2->var;
+  return NULL;
+}
+
+static Type *find_tag(Token *token) {
+  for (Scope *sc = scope; sc; sc = sc->next)
+    for (tag_scope *sc2 = sc->tags; sc2; sc2 = sc2->next)
+      if (equal(token, sc2->name))
+        return sc2->type;
   return NULL;
 }
 
@@ -175,6 +196,16 @@ static int get_number(Token *token) {
   if (token->token_type != T_NUM)
     error_tok(token, "expected a number");
   return token->val;
+}
+
+static void push_tag_scope(Token *token, Type *type) {
+  tag_scope *sc = calloc(1, sizeof(tag_scope));
+  if (sc == NULL)
+    error("not enough memory in system to allocate struct tag");
+  sc->name = strndup(token->loc, token->len);
+  sc->type = type;
+  sc->next = scope->tags;
+  scope->tags = sc;
 }
 
 // declaration-specifier = "char" | "int" | struct-declaration
@@ -583,14 +614,29 @@ static void struct_members(Token **rest, Token *token, Type *type) {
   type->members = head.next;
 }
 
-// struct-declaration = "{" struct-members
+// struct-declaration = ident? "{" struct-members
 static Type *struct_declaration(Token **rest, Token *token) {
-  token = skip(token, "{");
+  // Read struct tag
+  Token *tag = NULL;
+  if (token->token_type == T_IDENT) {
+    tag = token;
+    token = token->next;
+  }
+
+  if (tag && !equal(token, "{")) {
+    Type *type = find_tag(tag);
+    if (!type)
+      error_tok(tag, "unknown struct type");
+    *rest = token;
+    return type;
+  }
 
   // Build struct object
   Type *type = calloc(1, sizeof(Type));
+  if (type == NULL)
+    error("not enough memory in system to allocate for struct object");
   type->kind = TY_STRUCT;
-  struct_members(rest, token, type);
+  struct_members(rest, token->next, type);
   type->align = 1;
 
   // Assign offsets
@@ -605,6 +651,9 @@ static Type *struct_declaration(Token **rest, Token *token) {
   }
   type->size = align_to(offset, type->align);
 
+  // Register the struct type if a name was given
+  if (tag)
+    push_tag_scope(tag, type);
   return type;
 }
 
