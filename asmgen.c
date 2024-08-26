@@ -255,6 +255,7 @@ static void assign_lvar_offsets(Obj *program) {
     int offset = 0;
     for (Obj *var = func->locals; var; var = var->next) {
       offset += var->type->size;
+      offset = align_to(offset, var->type->align);
       var->offset = -offset;
     }
     func->stack_size = align_to(offset, 16);
