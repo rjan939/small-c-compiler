@@ -35,6 +35,7 @@ static Obj *globals;
 
 static Scope *scope = &(Scope){};
 
+static bool is_typename(Token *token);
 static Type *declaration_specifier(Token **rest, Token *token);
 static Type *declarator(Token **rest, Token *token, Type *type);
 static Node *declaration(Token **rest, Token *token);
@@ -209,40 +210,73 @@ static void push_tag_scope(Token *token, Type *type) {
   scope->tags = sc;
 }
 
-// declaration-specifier = "char" | "short" | "int" | "long" | struct-declaration | union-declaration
+// declaration-specifier = ("void" | "char" | "short" | "int" | "long"
+//                          | struct-declaration | union-declaration)+
+// Order of typenames doesnt matter, int long static means same as static int long
+// Count number of occurences of each typename while keeping the "current" type object that the typenames up
+// until that point represent. Return only when there is a non-typename token
 static Type *declaration_specifier(Token **rest, Token *token) {
-  if (equal(token, "void")) {
-    *rest = token->next;
-    return ty_void;
-  }
 
-  if (equal(token, "char")) {
-    *rest = token->next;
-    return ty_char;
-  }
+  enum {
+    VOID = 1 << 0,
+    CHAR = 1 << 2,
+    SHORT = 1 << 4,
+    INT = 1 << 6,
+    LONG = 1 << 8,
+    OTHER = 1 << 10,
+  };
+  Type *type = ty_int;
+  int counter = 0;
 
-  if (equal(token, "short")) {
-    *rest = token->next;
-    return ty_short;
-  }
+  while (is_typename(token)) {
+    if (equal(token, "struct") || equal(token, "union")) {
+      if (equal(token, "struct"))
+        type = struct_declaration(&token, token->next);
+      else
+        type = union_declaration(&token, token->next);
+      counter += OTHER;
+      continue;
+    }
 
-  if (equal(token, "int")) {
-    *rest = token->next;
-    return ty_int;
+    if (equal(token, "void"))
+      counter += VOID;
+    else if (equal(token, "char"))
+      counter += CHAR;
+    else if (equal (token, "short"))
+      counter += SHORT;
+    else if (equal(token, "int"))
+      counter += INT;
+    else if (equal(token, "long"))
+      counter += LONG;
+    else
+      unreachable();
+    
+    switch (counter) {
+      case VOID:
+        type = ty_void;
+        break;
+      case CHAR:
+        type = ty_char;
+        break;
+      case SHORT:
+      case SHORT + INT:
+        type = ty_short;
+        break;
+      case INT:
+        type = ty_int;
+        break;
+      case LONG:
+      case LONG + INT:
+        type = ty_long;
+        break;
+      default:
+        error_tok(token, "invalid type");
+    }
+    token = token->next;
   }
-
-  if (equal(token, "long")) {
-    *rest = token->next;
-    return ty_long;
-  }
-
-  if (equal(token, "struct"))
-    return struct_declaration(rest, token->next);
   
-  if (equal(token, "union"))
-    return union_declaration(rest, token->next);
-  
-  error_tok(token, "typename expected");
+  *rest = token;
+  return type;
 }
 
 // func-params = (param ("," param)*)? ")"
