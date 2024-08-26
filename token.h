@@ -49,7 +49,7 @@ typedef enum TokenType {
 typedef struct Token {
   TokenType token_type; // Kind of Token
   Token *next; // Next token
-  int val; // If tokenType == T_NUM, its value
+  int64_t val; // If tokenType == T_NUM, its value
   char *loc; // Token location
   int len; // Token length
   Type *type; // Used if T_STR
@@ -148,7 +148,7 @@ typedef struct Node {
   char *funcname;
   Node *args;
 
-  int val; // Only used if NodeType == ND_NUM
+  int64_t val; // Only used if NodeType == ND_NUM
   Obj *var; // Only used if NodeType == ND_VAR
 } Node;
 
@@ -159,6 +159,7 @@ Obj *parse(Token *token);
 typedef enum {
   TY_CHAR,
   TY_INT,
+  TY_LONG,
   TY_PTR,
   TY_FUNC,
   TY_ARRAY,
@@ -205,6 +206,7 @@ struct Member {
 
 extern Type *ty_char;
 extern Type *ty_int;
+extern Type *ty_long;
 
 bool is_integer(Type *type);
 Type *copy_type(Type *type);
