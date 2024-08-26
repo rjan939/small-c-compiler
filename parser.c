@@ -9,7 +9,7 @@ struct var_scope {
   Obj *var;
 };
 
-// Scope for struct tags
+// Scope for struct or union tags
 typedef struct tag_scope tag_scope;
 struct tag_scope {
   tag_scope *next;
@@ -48,6 +48,7 @@ static Node *relational(Token **rest, Token *token);
 static Node *add(Token **rest, Token *token);
 static Node *mul(Token **rest, Token *token);
 static Type *struct_declaration(Token **rest, Token *token);
+static Type *union_declaration(Token **rest, Token *token);
 static Node *postfix(Token **rest, Token *token);
 static Node *unary(Token **rest, Token *token);
 static Node *primary(Token **rest, Token *token);
@@ -223,6 +224,9 @@ static Type *declaration_specifier(Token **rest, Token *token) {
   if (equal(token, "struct"))
     return struct_declaration(rest, token->next);
   
+  if (equal(token, "union"))
+    return union_declaration(rest, token->next);
+  
   error_tok(token, "typename expected");
 }
 
@@ -309,7 +313,8 @@ static Node *declaration(Token **rest, Token *token) {
 
 // Returns true if token represents a type
 static bool is_typename(Token *token) {
-  return equal(token, "char") || equal(token, "int") || equal(token, "struct");
+  return equal(token, "char") || equal(token, "int") || equal(token, "struct") ||
+        equal(token, "union");
 }
 
 // stmt = "return" expr ";" 
@@ -614,9 +619,9 @@ static void struct_members(Token **rest, Token *token, Type *type) {
   type->members = head.next;
 }
 
-// struct-declaration = ident? "{" struct-members
-static Type *struct_declaration(Token **rest, Token *token) {
-  // Read struct tag
+// struct-union-declaration = ident? ("{" struct-members)?
+static Type *struct_union_declaration(Token **rest, Token *token) {
+  // Read tag
   Token *tag = NULL;
   if (token->token_type == T_IDENT) {
     tag = token;
@@ -638,8 +643,18 @@ static Type *struct_declaration(Token **rest, Token *token) {
   type->kind = TY_STRUCT;
   struct_members(rest, token->next, type);
   type->align = 1;
+  if (tag)
+    push_tag_scope(tag, type);
+  return type;
+}
 
-  // Assign offsets
+
+// struct-declaration = ident? "{" struct-members
+static Type *struct_declaration(Token **rest, Token *token) {
+  Type *type = struct_union_declaration(rest, token);
+  type->kind = TY_STRUCT;
+
+  // Assign offsets within structs to members
   int offset = 0;
   for (Member *member = type->members; member; member = member->next) {
     offset = align_to(offset, member->type->align);
@@ -650,10 +665,22 @@ static Type *struct_declaration(Token **rest, Token *token) {
       type->align = member->type->align;
   }
   type->size = align_to(offset, type->align);
+  return type;
+}
 
-  // Register the struct type if a name was given
-  if (tag)
-    push_tag_scope(tag, type);
+// union-declaration = struct-union-declaration
+static Type *union_declaration(Token **rest, Token *token) {
+  Type *type = struct_union_declaration(rest, token);
+  type->kind = TY_UNION;
+
+  // Unions dont need offsets since they are already initialized to zero, we still need to compute alignment and size though
+  for (Member *member = type->members; member; member = member->next) {
+    if (type->align < member->type->align)
+      type->align = member->type->align;
+    if (type->size < member->type->size) 
+      type->size = member->type->size;
+  }
+  type->size = align_to(type->size, type->align);
   return type;
 }
 
@@ -667,8 +694,8 @@ static Member *get_struct_member(Type *type, Token *token) {
 
 static Node *struct_ref(Node *left, Token *token) {
   add_type(left);
-  if (left->type->kind != TY_STRUCT)
-    error_tok(left->token, "not a struct");
+  if (left->type->kind != TY_STRUCT && left->type->kind != TY_UNION)
+    error_tok(left->token, "not a struct nor a union");
   
   Node *node = new_unary(ND_MEMBER, left, token);
   node->member = get_struct_member(left->type, token);
