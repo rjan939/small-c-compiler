@@ -267,6 +267,8 @@ static Type *declaration_specifier(Token **rest, Token *token) {
         break;
       case LONG:
       case LONG + INT:
+      case LONG + LONG:
+      case LONG + LONG + INT:
         type = ty_long;
         break;
       default:

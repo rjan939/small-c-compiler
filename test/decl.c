@@ -7,6 +7,7 @@ int main() {
   ASSERT(4, ({ int x; sizeof(x); }));
   ASSERT(8, ({ long int x; sizeof(x); }));
   ASSERT(8, ({ int long x; sizeof(x); }));
+  ASSERT(8, ({ long long x; sizeof(x); }));
 
   printf("\nEVERYTHING GOOD\n");
   return 0;
