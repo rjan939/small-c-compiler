@@ -371,6 +371,31 @@ static Type *declarator(Token **rest, Token *token, Type *type) {
   return type;
 }
 
+// abstract-declarator = "*" ("(" abstract-declarator ")")? type-suffix
+static Type *abstract_declarator(Token **rest, Token *token, Type *type) {
+  while (equal(token, "*")) {
+    type = pointer_to(type);
+    token = token->next;
+  }
+
+  if (equal(token, "(")) {
+    Token *start = token;
+    Type dummy = {};
+    abstract_declarator(&token, start->next, &dummy);
+    token = skip(token, ")");
+    type = type_suffix(rest, token, type);
+    return abstract_declarator(&token, start->next, type);
+  }
+
+  return type_suffix(rest, token, type);
+}
+
+// type-name = declaration-specifier abstract-declarator
+static Type *typename(Token **rest, Token *token) {
+  Type *type = declaration_specifier(&token, token, NULL);
+  return abstract_declarator(rest, token, type);
+}
+
 // declaration = declaration_specifier (declarator ("=" expr)? ("," declarator ("=" expr)?)*)? ";"
 static Node *declaration(Token **rest, Token *token, Type *basetype) {
   Node head = {};
@@ -863,11 +888,14 @@ static Node *funcall(Token **rest, Token *token) {
 
 // primary = "(" "{" stmt+ "}" ")"
 //         | "(" expr ")"
+//         | "sizeof" "(" type-name ")"
 //         | "sizeof" unary
 //         | funcall
 //         | str
 //         | num
 static Node *primary(Token **rest, Token* token) {
+  Token *start = token;
+
   if (equal(token, "(") && equal(token->next, "{")) {
     Node *node = new_node(ND_STATEMENT_EXPRESSION, token);
     node->body = compound_statement(&token, token->next->next)->body;
@@ -878,6 +906,12 @@ static Node *primary(Token **rest, Token* token) {
     Node *node = expr(&token, token->next);
     *rest = skip(token, ")");
     return node;
+  }
+
+  if (equal(token, "sizeof") && equal(token->next, "(") && is_typename(token->next->next)) {
+    Type *type = typename(&token, token->next->next);
+    *rest = skip(token, ")");
+    return new_num(type->size, start);
   }
 
   if (equal(token, "sizeof")) {
