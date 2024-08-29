@@ -53,6 +53,7 @@ static Node *equality(Token **rest, Token *token);
 static Node *relational(Token **rest, Token *token);
 static Node *add(Token **rest, Token *token);
 static Node *mul(Token **rest, Token *token);
+static Node *cast(Token **rest, Token *token);
 static Type *struct_declaration(Token **rest, Token *token);
 static Type *union_declaration(Token **rest, Token *token);
 static Node *postfix(Token **rest, Token *token);
@@ -137,6 +138,20 @@ static Node *new_num(int64_t val, Token *token) {
 static Node *new_var_node(Obj *var, Token *token) {
   Node *node = new_node(ND_VAR, token);
   node->var = var;
+  return node;
+}
+
+// TODO: free cast nodes
+static Node *new_cast(Node *expr, Type *type) {
+  add_type(expr);
+
+  Node *node = calloc(1, sizeof(Node));
+  if (node == NULL)
+    error("not enough memory in system for cast");
+  node->node_type = ND_CAST;
+  node->token = expr->token;
+  node->left = expr;
+  node->type = copy_type(type);
   return node;
 }
 
@@ -684,20 +699,20 @@ static Node *add(Token **rest, Token *token) {
   }
 }
 
-// mul = unary ("*" unary | "/" unary)*
+// mul = cast ("*" cast | "/" cast)*
 static Node *mul(Token **rest, Token *token) {
-  Node *node = unary(&token, token); 
+  Node *node = cast(&token, token); 
 
   for (;;) {
     Token *start = token;
 
     if (equal(token, "*")) {
-      node = new_binary(ND_MUL, node, unary(&token, token->next), start);
+      node = new_binary(ND_MUL, node, cast(&token, token->next), start);
       continue;
     }
 
     if (equal(token, "/")) {
-      node = new_binary(ND_DIV, node, unary(&token, token->next), start);
+      node = new_binary(ND_DIV, node, cast(&token, token->next), start);
       continue;
     }
 
@@ -706,17 +721,31 @@ static Node *mul(Token **rest, Token *token) {
   }
 }
 
-// unary = ("+" | "-" | "*" | "&") unary 
+// cast = "(" type-name ")" cast | unary
+static Node *cast(Token **rest, Token *token) {
+  if (equal(token, "(") && is_typename(token->next)) {
+    Token *start = token;
+    Type *type = typename(&token, token->next);
+    token = skip(token, ")");
+    Node *node = new_cast(cast(rest, token), type);
+    node->token = start;
+    return node;
+  }
+
+  return unary(rest, token);
+}
+
+// unary = ("+" | "-" | "*" | "&") cast 
 //       | postfix
 static Node *unary(Token **rest, Token *token) {
   if (equal(token, "+")) 
-    return unary(rest, token->next);
+    return cast(rest, token->next);
   if (equal(token, "-")) 
-    return new_unary(ND_NEG, unary(rest, token->next), token);
+    return new_unary(ND_NEG, cast(rest, token->next), token);
   if (equal(token, "&")) 
-    return new_unary(ND_ADDRESS, unary(rest, token->next), token);
+    return new_unary(ND_ADDRESS, cast(rest, token->next), token);
   if (equal(token, "*")) 
-    return new_unary(ND_DEREF, unary(rest, token->next), token);
+    return new_unary(ND_DEREF, cast(rest, token->next), token);
   return postfix(rest, token);
 }
 
