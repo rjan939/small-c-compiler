@@ -173,25 +173,40 @@ static void gen_expr(Node *node) {
   gen_expr(node->left);
   pop("%rdi");
 
+  char *ax, *di;
+
+  if (node->left->type->kind == TY_LONG || node->left->type->base) {
+    ax = "%rax";
+    di = "%rdi";
+  } else {
+    ax = "%eax";
+    di = "%edi";
+  }
+
   switch(node->node_type) {
     case ND_ADD:
-      println("  add %%rdi, %%rax");
+      println("  add %s, %s", di, ax);
       return;
     case ND_SUB:
-      println("  sub %%rdi, %%rax");
+      println("  sub %s, %s", di, ax);
       return;
     case ND_MUL:
-      println("  imul %%rdi, %%rax");
+      println("  imul %s, %s", di, ax);
       return;
     case ND_DIV:
-      println("  cqo");
-      println("  idiv %%rdi");
+      // 64-bit instruction
+      if (node->left->type->size == 8)
+        println("  cqo");
+      // 32-bit instruction
+      else
+        println(" cdq");
+      println("  idiv %s", di);
       return;
     case ND_EQ:
     case ND_NE:
     case ND_LT:
     case ND_LE:
-      println("  cmp %%rdi, %%rax");
+      println("  cmp %s, %s", di, ax);
 
       if (node->node_type == ND_EQ) 
         println("  sete %%al");
