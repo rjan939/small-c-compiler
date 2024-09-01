@@ -917,7 +917,8 @@ static Node *funcall(Token **rest, Token *token) {
   if (!sc->var || sc->var->type->kind != TY_FUNC)
     error_tok(start, "not a function");
   
-  Type *type = sc->var->type->return_type;
+  Type *type = sc->var->type;
+  Type *param_type = type->params;
 
   Node head = {};
   Node *cur = &head;
@@ -925,15 +926,25 @@ static Node *funcall(Token **rest, Token *token) {
   while (!equal(token, ")")) {
     if (cur != &head)
       token = skip(token, ",");
-    cur = cur->next = assign(&token, token);
-    add_type(cur);
+
+    Node *arg = assign(&token, token);
+    add_type(arg);
+
+    if (param_type) {
+      if (param_type->kind == TY_STRUCT || param_type->kind == TY_UNION)
+        error_tok(arg->token, "passing struct or union is not supported yet");
+      arg = new_cast(arg, param_type);
+      param_type = param_type->next;
+    }
+    cur = cur->next = arg;
   }
 
   *rest = skip(token, ")");
 
   Node *node = new_node(ND_FUNCALL, start);
   node->funcname = strndup(start->loc, start->len);
-  node->type = type;
+  node->func_type = type;
+  node->type = type->return_type;
   node->args = head.next;
   return node;
 }

@@ -148,6 +148,7 @@ typedef struct Node {
 
   // Function call
   char *funcname;
+  Type *func_type;
   Node *args;
 
   int64_t val; // Only used if NodeType == ND_NUM
