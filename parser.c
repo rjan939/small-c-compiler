@@ -40,6 +40,9 @@ static Obj *globals;
 
 static Scope *scope = &(Scope){};
 
+// Points to the function object the parser is currently parsing
+static Obj *current_func;
+
 static bool is_typename(Token *token);
 static Type *declaration_specifier(Token **rest, Token *token, var_attribute *attribute);
 static Type *declarator(Token **rest, Token *token, Type *type);
@@ -469,8 +472,11 @@ static bool is_typename(Token *token) {
 static Node *statement(Token **rest, Token *token) {
   if (equal(token, "return")) {
     Node *node = new_node(ND_RETURN, token);
-    node->left = expr(&token, token->next);
+    Node *exp = expr(&token, token->next);
     *rest = skip(token, ";");
+
+    add_type(exp);
+    node->left = new_cast(exp, current_func->type->return_type);
     return node;
   }
 
@@ -1024,6 +1030,8 @@ static Token *function(Token *token, Type *basetype) {
 
   if (!func->is_definition)
     return token;
+  
+  current_func = func;
 
   locals = NULL;
   enter_scope();
