@@ -7,7 +7,7 @@ OBJS = $(SRCS:.c=.o)
 TEST_SRCS = $(filter-out test/testfile.c, $(wildcard test/*.c))
 TESTS = $(TEST_SRCS:.c=.exe)
 
-default : main test clean
+default : main test
 
 main : $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
