@@ -51,6 +51,22 @@ Type *array_of(Type *base, int len) {
   return type;
 }
 
+static Type *get_common_type(Type *type1, Type *type2) {
+  if (type1->base)
+    return pointer_to(type1->base);
+  if (type1->size == 8 || type2->size == 8)
+    return ty_long;
+  return ty_int;
+}
+
+// If the type of one operand is larger than the other(ex. long v int), the smaller operand will be promoted to match with the other.
+// This is called usual arithmetic conversion
+static void usual_arithmetic_conversion(Node **left, Node **right) {
+  Type *type = get_common_type((*left)->type, (*right)->type);
+  *left = new_cast(*left, type);
+  *right = new_cast(*right, type);
+}
+
 void add_type(Node *node) {
   if (!node || node->type)
     return;
@@ -68,23 +84,35 @@ void add_type(Node *node) {
   for (Node *n = node->args; n; n = n->next)
     add_type(n);
   switch (node->node_type) {
+    case ND_NUM:
+      node->type = (node->val == (int)node->val) ? ty_int : ty_long;
+      return;
     case ND_ADD:
     case ND_SUB:
     case ND_MUL:
     case ND_DIV:
-    case ND_NEG:
+      usual_arithmetic_conversion(&node->left, &node->right);
       node->type = node->left->type;
+      return;
+    case ND_NEG:
+      Type *type = get_common_type(ty_int, node->left->type);
+      node->left = new_cast(node->left, type);
+      node->type = type;
       return;
     case ND_ASSIGN:
       if (node->left->type->kind == TY_ARRAY)
         error_tok(node->left->token, "not a local variable");
+      if (node->left->type->kind != TY_STRUCT)
+        node->right = new_cast(node->right, node->left->type);
       node->type = node->left->type;
       return;
     case ND_EQ:
     case ND_NE:
     case ND_LT:
     case ND_LE:
-    case ND_NUM:
+      usual_arithmetic_conversion(&node->left, &node->right);
+      node->type = ty_int;
+      return;
     case ND_FUNCALL:
       node->type = ty_long;
       return;

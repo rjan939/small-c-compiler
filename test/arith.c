@@ -30,6 +30,9 @@ int main() {
   ASSERT(1, 1 >= 0);
   ASSERT(1, 1 >= 1);
   ASSERT(0, 1 >= 2);
+
+  ASSERT(0, 1073741824 * 100 / 100);
+  
   printf("\nEVERYTHING GOOD\n");
   return 0;
 }

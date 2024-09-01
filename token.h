@@ -154,6 +154,7 @@ typedef struct Node {
   Obj *var; // Only used if NodeType == ND_VAR
 } Node;
 
+Node *new_cast(Node *expr, Type *type);
 Obj *parse(Token *token);
 
 // type.c

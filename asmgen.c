@@ -80,10 +80,12 @@ static void load(Type *type) {
     return;
   }
 
+  // When loading a char or short to a reg, always extend to size of int, so we can assume the lower half of the reg always contains a valid value
+  // The upper half of a reg for char, short, and int may contain garbage. When we load long, it just occupies the entire reg. 
   if (type->size == 1)
-    println("  movsbq (%%rax), %%rax");
+    println("  movsbl (%%rax), %%eax");
   else if (type->size == 2)
-    println(" movswq (%%rax), %%rax");
+    println(" movswl (%%rax), %%eax");
   else if (type->size == 4)
     println(" movsxd (%%rax), %%rax");
   else

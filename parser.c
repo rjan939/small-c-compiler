@@ -135,6 +135,13 @@ static Node *new_num(int64_t val, Token *token) {
   return node;
 }
 
+static Node *new_long(int64_t val, Token *token) {
+  Node *node = new_node(ND_NUM, token);
+  node->val = val;
+  node->type = ty_long;
+  return node;
+}
+
 static Node *new_var_node(Obj *var, Token *token) {
   Node *node = new_node(ND_VAR, token);
   node->var = var;
@@ -142,7 +149,7 @@ static Node *new_var_node(Obj *var, Token *token) {
 }
 
 // TODO: free cast nodes
-static Node *new_cast(Node *expr, Type *type) {
+Node *new_cast(Node *expr, Type *type) {
   add_type(expr);
 
   Node *node = calloc(1, sizeof(Node));
@@ -649,7 +656,7 @@ static Node *new_add(Node *left, Node *right, Token *token) {
   }
 
   // ptr + num
-  right = new_binary(ND_MUL, right, new_num(left->type->base->size, token), token);
+  right = new_binary(ND_MUL, right, new_long(left->type->base->size, token), token);
   return new_binary(ND_ADD, left, right, token);
 }
 
@@ -663,7 +670,7 @@ static Node *new_sub(Node *left, Node *right, Token *token) {
   
   // ptr - num
   if (left->type->base && is_integer(right->type)) {
-    right = new_binary(ND_MUL, right, new_num(left->type->base->size, token), token);
+    right = new_binary(ND_MUL, right, new_long(left->type->base->size, token), token);
     add_type(right);
     Node *node = new_binary(ND_SUB, left, right, token);
     node->type = left->type;
