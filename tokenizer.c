@@ -246,6 +246,26 @@ static Token *read_string_literal(char *start) {
   return token;
 }
 
+static Token *read_char_literal(char *start) {
+  char *p = start + 1;
+  if (*p == '\0')
+    error_at(start, "unclosed char literal");
+
+  char c;
+  if (*p == '\\')
+    c = read_escaped_char(&p, p + 1);
+  else
+    c = *p++;
+  
+  char *end = strchr(p, '\'');
+  if (!end)
+    error_at(p, "unclosed char literal");
+  
+  Token *token = new_token(T_NUM, start, end + 1);
+  token->val = c;
+  return token;
+}
+
 static void identify_keywords(Token *token) {
   for (Token *curr = token; curr->token_type != T_EOF; curr = curr->next) 
     if (is_keyword(curr)) 
@@ -295,6 +315,13 @@ static Token *tokenize(char *filename, char *p) {
     // String literal
     if (*p == '"') {
       cur = cur->next = read_string_literal(p);
+      p += cur->len;
+      continue;
+    }
+
+    // Character literal
+    if (*p == '\'') {
+      cur = cur->next = read_char_literal(p);
       p += cur->len;
       continue;
     }

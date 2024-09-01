@@ -11,5 +11,7 @@ int main() {
   ASSERT(4, ({ typedef t; t x; sizeof(x); }));
   ASSERT(3, ({ MyInt x=3; x; }));
   ASSERT(16, ({ MyInt2 x; sizeof(x); }));
+
+  printf("\nEVERYTHING GOOD\n");
 	return 0;
 }
