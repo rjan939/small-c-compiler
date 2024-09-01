@@ -2,7 +2,6 @@
 
 cleanup() {
   rm -rf $tmp
-  make clean
 }
 
 tmp=`mktemp -d /tmp/compiler-test-XXXXXX`

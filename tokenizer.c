@@ -20,7 +20,7 @@ void error(char *fmt, ...) {
   exit(1);
 }
 
-// Reports error message in following format and exits
+// Reports error message in following format
 //
 // main.c:10: x = y + 1;
 //                ^ <error message here>
@@ -45,7 +45,6 @@ void verror_at(int line_num, char *location, char *fmt, va_list argument_pointer
   vfprintf(stderr, fmt, argument_pointer);
   fprintf(stderr, "\n");
   va_end(argument_pointer);
-  exit(1);
 }
 
 void error_at(char *location, char *fmt, ...) {
@@ -56,12 +55,14 @@ void error_at(char *location, char *fmt, ...) {
   va_list argument_pointer;
   va_start(argument_pointer, fmt);
   verror_at(line_num, location, fmt, argument_pointer);
+  exit(1);
 }
 
 void error_tok(Token *token, char *fmt, ...) {
   va_list argument_pointer;
   va_start(argument_pointer, fmt);
   verror_at(token->line_num, token->loc, fmt, argument_pointer);
+  exit(1);
 }
 
 static void add_line_numbers(Token *token) {

@@ -905,6 +905,14 @@ static Node *funcall(Token **rest, Token *token) {
   Token *start = token;
   token = token->next->next;
 
+  var_scope *sc = find_var(start);
+  if (!sc)
+    error_tok(start, "implicit declaration of a function");
+  if (!sc->var || sc->var->type->kind != TY_FUNC)
+    error_tok(start, "not a function");
+  
+  Type *type = sc->var->type->return_type;
+
   Node head = {};
   Node *cur = &head;
 
@@ -912,12 +920,14 @@ static Node *funcall(Token **rest, Token *token) {
     if (cur != &head)
       token = skip(token, ",");
     cur = cur->next = assign(&token, token);
+    add_type(cur);
   }
 
   *rest = skip(token, ")");
 
   Node *node = new_node(ND_FUNCALL, start);
   node->funcname = strndup(start->loc, start->len);
+  node->type = type;
   node->args = head.next;
   return node;
 }
