@@ -1,16 +1,19 @@
 // This file is a recursive descent parser for C
 #include "token.h"
 
-// Scope for local or global variables or typedefs
+// Scope for local variables, global variables, typedefs
+// or enum constants
 typedef struct var_scope var_scope;
 struct var_scope {
   var_scope *next;
   char *name;
   Obj *var;
   Type *type_def;
+  Type *enum_type;
+  int enum_val;
 };
 
-// Scope for struct or union tags
+// Scope for struct, union, or enum tags
 typedef struct tag_scope tag_scope;
 struct tag_scope {
   tag_scope *next;
@@ -23,7 +26,8 @@ typedef struct Scope Scope;
 struct Scope {
   Scope *next;
 
-  // C has two block scopes; one is for vars and the other is for struct tags
+  // C has two block scopes; one is for variables/typedefs and
+  // the other is for struct/union/enum tags
   var_scope *vars;
   tag_scope *tags;
 };
@@ -45,6 +49,7 @@ static Obj *current_func;
 
 static bool is_typename(Token *token);
 static Type *declaration_specifier(Token **rest, Token *token, var_attribute *attribute);
+static Type *enum_specifier(Token **rest, Token *token);
 static Type *declarator(Token **rest, Token *token, Type *type);
 static Node *declaration(Token **rest, Token *token, Type *basetype);
 static Node *compound_statement(Token **rest, Token *token);
@@ -251,7 +256,9 @@ static void push_tag_scope(Token *token, Type *type) {
 
 // declaration-specifier = ("void" | "_Bool" | "char" | "short" | "int" | "long"
 //                          | "typedef"
-//                          | struct-declaration | union-declaration)+
+//                          | struct-declaration | union-declaration | typedef-name
+//                          | enum-specifier)+
+
 // Order of typenames doesnt matter, int long static means same as static int long
 // Count number of occurences of each typename while keeping the "current" type object that the typenames up
 // until that point represent. Return only when there is a non-typename token
@@ -279,14 +286,16 @@ static Type *declaration_specifier(Token **rest, Token *token, var_attribute *at
       continue;
     }
     Type *type2 = find_typedef(token);
-    if (equal(token, "struct") || equal(token, "union") || type2) {
+    if (equal(token, "struct") || equal(token, "union") || equal(token, "enum") || type2) {
       if (counter)
         break;
       if (equal(token, "struct"))
         type = struct_declaration(&token, token->next);
       else if (equal(token, "union")) 
         type = union_declaration(&token, token->next);
-      else {
+      else if (equal(token, "enum")) {
+        type = enum_specifier(&token, token->next);
+      } else {
         type = type2;
         token = token->next;
       }
@@ -427,6 +436,56 @@ static Type *typename(Token **rest, Token *token) {
   return abstract_declarator(rest, token, type);
 }
 
+// enum-specifier = ident? "{" enum-list? "}"
+//                | ident ("{" enum-list? "}")?
+// 
+// enum-list = ident ("=" num)? ("," ident ("=" num)?)*
+static Type *enum_specifier(Token **rest, Token *token) {
+  Type *type = enum_type();
+  Token *tag = NULL;
+  if (token->token_type == T_IDENT) {
+    tag = token;
+    token = token->next;
+  }
+
+  if (tag && !equal(token, "{")) {
+    Type *type = find_tag(tag);
+    if (!type)
+      error_tok(tag, "unknown enum type");
+    if (type->kind != TY_ENUM)
+      error_tok(tag, "not an enum tag");
+    *rest = token;
+    return type;
+  }
+
+  token = skip(token, "{");
+
+  // Read an enum-list
+  int i = 0;
+  int val = 0;
+  while (!equal(token, "}")) {
+    if (i++ > 0)
+      token = skip(token, ",");
+    char *name = get_ident(token);
+    token = token->next;
+
+    if (equal(token, "=")) {
+      val = get_number(token->next);
+      token = token->next->next;
+    }
+
+    var_scope *sc = push_scope(name);
+    sc->enum_type = type;
+    sc->enum_val = val++;
+  }
+
+  *rest = token->next;
+
+  if (tag)
+    push_tag_scope(tag, type);
+  return type;
+}
+
 // declaration = declaration_specifier (declarator ("=" expr)? ("," declarator ("=" expr)?)*)? ";"
 static Node *declaration(Token **rest, Token *token, Type *basetype) {
   Node head = {};
@@ -460,7 +519,7 @@ static Node *declaration(Token **rest, Token *token, Type *basetype) {
 // Returns true if token represents a type
 static bool is_typename(Token *token) {
   static char *typenames[] = { 
-    "void", "_Bool", "char", "short", "int", "long", "struct", "union", "typedef",
+    "void", "_Bool", "char", "short", "int", "long", "struct", "union", "typedef", "enum",
   };
   
   for (int i = 0; i < sizeof(typenames) / sizeof(*typenames); i++)
@@ -996,11 +1055,19 @@ static Node *primary(Token **rest, Token* token) {
     }
 
     // Verify that there is not a variable already created with this name
+    // or enum constant
     var_scope *sc = find_var(token);
-    if (!sc || !sc->var)
+    if (!sc || (!sc->var && !sc->enum_type))
       error_tok(token, "undefined variable");
+    
+    Node *node;
+    if (sc->var)
+      node = new_var_node(sc->var, token);
+    else
+      node = new_num(sc->enum_val, token);
+
     *rest = token->next;
-    return new_var_node(sc->var, token);
+    return node;
   }
 
   if (token->token_type == T_STR) {
