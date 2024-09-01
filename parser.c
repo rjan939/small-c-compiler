@@ -249,7 +249,7 @@ static void push_tag_scope(Token *token, Type *type) {
   scope->tags = sc;
 }
 
-// declaration-specifier = ("void" | "char" | "short" | "int" | "long"
+// declaration-specifier = ("void" | "_Bool" | "char" | "short" | "int" | "long"
 //                          | "typedef"
 //                          | struct-declaration | union-declaration)+
 // Order of typenames doesnt matter, int long static means same as static int long
@@ -259,11 +259,12 @@ static Type *declaration_specifier(Token **rest, Token *token, var_attribute *at
 
   enum {
     VOID = 1 << 0,
-    CHAR = 1 << 2,
-    SHORT = 1 << 4,
-    INT = 1 << 6,
-    LONG = 1 << 8,
-    OTHER = 1 << 10,
+    BOOL = 1 << 2,
+    CHAR = 1 << 4,
+    SHORT = 1 << 6,
+    INT = 1 << 8,
+    LONG = 1 << 10,
+    OTHER = 1 << 12,
   };
   Type *type = ty_int;
   int counter = 0;
@@ -296,6 +297,8 @@ static Type *declaration_specifier(Token **rest, Token *token, var_attribute *at
 
     if (equal(token, "void"))
       counter += VOID;
+    else if (equal(token, "_Bool"))
+      counter += BOOL;
     else if (equal(token, "char"))
       counter += CHAR;
     else if (equal (token, "short"))
@@ -310,6 +313,9 @@ static Type *declaration_specifier(Token **rest, Token *token, var_attribute *at
     switch (counter) {
       case VOID:
         type = ty_void;
+        break;
+      case BOOL:
+        type = ty_bool;
         break;
       case CHAR:
         type = ty_char;
@@ -454,7 +460,7 @@ static Node *declaration(Token **rest, Token *token, Type *basetype) {
 // Returns true if token represents a type
 static bool is_typename(Token *token) {
   static char *typenames[] = { 
-    "void", "char", "short", "int", "long", "struct", "union", "typedef",
+    "void", "_Bool", "char", "short", "int", "long", "struct", "union", "typedef",
   };
   
   for (int i = 0; i < sizeof(typenames) / sizeof(*typenames); i++)

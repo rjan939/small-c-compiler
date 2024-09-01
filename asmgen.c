@@ -114,6 +114,13 @@ static void store(Type *type) {
     println("  mov %%rax, (%%rdi)");
 }
 
+static void cmp_zero(Type *type) {
+  if (is_integer(type) && type->size <= 4)
+    println("  cmp $0, %%eax");
+  else
+    println("  cmp $0, %%rax");
+}
+
 enum Bit { I8, I16, I32, I64 };
 
 static int getTypeId(Type *type) {
@@ -143,6 +150,11 @@ static char *cast_table[][10] = {
 static void cast(Type *from, Type *to) {
   if (to->kind == TY_VOID)
     return;
+  if (to->kind == TY_BOOL) {
+    cmp_zero(from);
+    println("  setne %%al");
+    println("  movzx %%al, %%eax");
+  }
 
   int t1 = getTypeId(from);
   int t2 = getTypeId(to);
