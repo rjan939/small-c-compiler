@@ -51,6 +51,8 @@ int div_long(long a, long b) {
 _Bool bool_fn_add(_Bool x) { return x + 1; }
 _Bool bool_fn_sub(_Bool x) { return x - 1; }
 
+static int static_func() { return 3; }
+
 int main() {
   ASSERT(3, ret3());
   ASSERT(8, add2(3, 5));
@@ -81,6 +83,8 @@ int main() {
   ASSERT(0, bool_fn_sub(-3));
   ASSERT(1, bool_fn_add(0));
   ASSERT(1, bool_fn_sub(0));
+
+  ASSERT(3, static_func());
 
   printf("\nEVERYTHING GOOD\n");
   return 0;

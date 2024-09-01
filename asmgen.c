@@ -354,8 +354,8 @@ static void emit_data(Obj *program) {
     if (var->is_function)
       continue;
     
-    println("  .data");
-    println("  .globl %s", var->name);
+      println("  .data");
+      println("  .globl %s", var->name);
     println("%s:", var->name);
     if (var->init_data)
       for (int i = 0; i < var->type->size; i++)
@@ -388,7 +388,11 @@ static void emit_text(Obj *program) {
     if (!func->is_function || !func->is_definition)
       continue;
 
-    println("  .globl %s", func->name);
+    if (func->is_static)
+      println("  .local %s", func->name);
+    else 
+      println("  .globl %s", func->name);
+    
     println("  .text");
     println("%s:", func->name);
     current_func = func;

@@ -34,6 +34,7 @@ struct Scope {
 
 typedef struct {
   bool is_typedef;
+  bool is_static;
 } var_attribute;
 
 // Local variables in the parser
@@ -255,7 +256,7 @@ static void push_tag_scope(Token *token, Type *type) {
 }
 
 // declaration-specifier = ("void" | "_Bool" | "char" | "short" | "int" | "long"
-//                          | "typedef"
+//                          | "typedef" | "static"
 //                          | struct-declaration | union-declaration | typedef-name
 //                          | enum-specifier)+
 
@@ -277,12 +278,19 @@ static Type *declaration_specifier(Token **rest, Token *token, var_attribute *at
   int counter = 0;
 
   while (is_typename(token)) {
-    // Handle "typename" keyword
-    if (equal(token, "typedef")) {
+    // Handle storage class specifiers
+    if (equal(token, "typedef") || equal(token, "static")) {
       if (!attribute) 
         error_tok(token, "storage class specifier is not allowed in this context");
-      attribute->is_typedef = true;
+      if (equal(token, "typedef"))
+        attribute->is_typedef = true;
+      else
+        attribute->is_static = true;
+
+      if (attribute->is_typedef + attribute->is_static > 1)
+        error_tok(token, "typedef and static may not be used together");
       token = token->next;
+
       continue;
     }
     Type *type2 = find_typedef(token);
@@ -519,7 +527,8 @@ static Node *declaration(Token **rest, Token *token, Type *basetype) {
 // Returns true if token represents a type
 static bool is_typename(Token *token) {
   static char *typenames[] = { 
-    "void", "_Bool", "char", "short", "int", "long", "struct", "union", "typedef", "enum",
+    "void", "_Bool", "char", "short", "int", "long", "struct", "union", 
+    "typedef", "enum", "static",
   };
   
   for (int i = 0; i < sizeof(typenames) / sizeof(*typenames); i++)
@@ -1105,12 +1114,13 @@ static void create_param_lvars(Type *param) {
   }
 }
 
-static Token *function(Token *token, Type *basetype) {
+static Token *function(Token *token, Type *basetype, var_attribute *attribute) {
   Type *type = declarator(&token, token, basetype);
 
   Obj *func = new_gvar(get_ident(type->name), type);
   func->is_function = true;
   func->is_definition = !consume(&token, token, ";");
+  func->is_static = attribute->is_static;
 
   if (!func->is_definition)
     return token;
@@ -1172,7 +1182,7 @@ Obj *parse(Token *token) {
     
     // Function
     if (is_function(token)) {
-      token = function(token, basetype);
+      token = function(token, basetype, &attribute);
       continue;
     }
 
