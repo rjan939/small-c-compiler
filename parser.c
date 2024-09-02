@@ -61,6 +61,8 @@ static Node *assign(Token **rest, Token *token);
 static Node *equality(Token **rest, Token *token);
 static Node *relational(Token **rest, Token *token);
 static Node *add(Token **rest, Token *token);
+static Node *new_add(Node *left, Node *right, Token *token);
+static Node *new_sub(Node *left, Node *right, Token *token);
 static Node *mul(Token **rest, Token *token);
 static Node *cast(Token **rest, Token *token);
 static Type *struct_declaration(Token **rest, Token *token);
@@ -659,12 +661,49 @@ static Node *expr(Token **rest, Token *token) {
   return node;
 }
 
-// assign = equality ("=" assign)?
+// Convert `A op=B` to `tmp = &A, *tmp = *tmp op B`
+// where tmp is a fresh pointer variable.
+static Node *to_assign(Node *binary) {
+  add_type(binary->left);
+  add_type(binary->right);
+  Token *token = binary->token;
+
+  Obj *var = new_lvar("", pointer_to(binary->left->type));
+
+  Node *expr1 = new_binary(ND_ASSIGN, new_var_node(var, token),
+                            new_unary(ND_ADDRESS, binary->left, token), token);
+
+  Node *expr2 =
+    new_binary(ND_ASSIGN,
+                new_unary(ND_DEREF, new_var_node(var, token), token),
+                new_binary(binary->node_type,
+                            new_unary(ND_DEREF, new_var_node(var, token), token),
+                            binary->right,
+                            token),
+                token);
+  return new_binary(ND_COMMA, expr1, expr2, token);
+}
+
+// assign = equality (assign-op assign)?
+// assign-op = "=" | "+=" | "-=" | "*=" | "/="
 static Node *assign(Token **rest, Token *token) {
   Node *node = equality(&token, token);
   if (equal(token, "=")) {
     node = new_binary(ND_ASSIGN, node, assign(&token, token->next), token);
   }
+
+  if (equal(token, "+="))
+    return to_assign(new_add(node, assign(rest, token->next), token));
+  
+  if (equal(token, "-="))
+    return to_assign(new_sub(node, assign(rest, token->next), token));
+  
+  if (equal(token, "*="))
+    return to_assign(new_binary(ND_MUL, node, assign(rest, token->next), token));
+
+  if (equal(token, "/=")) 
+    return to_assign(new_binary(ND_DIV, node, assign(rest, token->next), token));
+  
   *rest = token;
   return node;
 }
