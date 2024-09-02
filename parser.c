@@ -571,7 +571,14 @@ static Node *statement(Token **rest, Token *token) {
     Node *node = new_node(ND_FOR, token);
     token = skip(token->next, "(");
 
-    node->init = expr_statement(&token, token);
+    enter_scope();
+
+    if (is_typename(token)) {
+      Type *basetype = declaration_specifier(&token, token, NULL);
+      node->init = declaration(&token, token, basetype);
+    } else {
+      node->init = expr_statement(&token, token);
+    }
 
     if (!equal(token, ";"))
       node->cond = expr(&token, token);
@@ -582,6 +589,7 @@ static Node *statement(Token **rest, Token *token) {
     token = skip(token, ")");
 
     node->then = statement(rest, token);
+    leave_scope();
     return node;
   }
 
