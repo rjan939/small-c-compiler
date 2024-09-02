@@ -11,6 +11,7 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <string.h>
+#include <strings.h>
 #include <stdarg.h>
 
 typedef struct Type Type;
