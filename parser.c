@@ -1004,7 +1004,15 @@ static Node *struct_ref(Node *left, Token *token) {
   return node;
 }
 
-// postfix = primary ("[" expr "]" | "." ident | "->" ident)*
+// Convert A++ to `(typeof A)((A += 1) - 1)`
+static Node *new_inc_dec(Node *node, Token *token, int addend) {
+  add_type(node);
+  return new_cast(new_add(to_assign(new_add(node, new_num(addend, token), token)),
+                          new_num(-addend, token), token),
+                  node->type);
+}
+
+// postfix = primary ("[" expr "]" | "." ident | "->" ident | "++" | "--")*
 static Node *postfix(Token **rest, Token *token) {
   Node *node = primary(&token, token);
 
@@ -1029,6 +1037,18 @@ static Node *postfix(Token **rest, Token *token) {
       node = new_unary(ND_DEREF, node, token);
       node = struct_ref(node, token->next);
       token = token->next->next;
+      continue;
+    }
+
+    if (equal(token, "++")) {
+      node = new_inc_dec(node, token, 1);
+      token = token->next;
+      continue;
+    }
+
+    if (equal(token, "--")) {
+      node = new_inc_dec(node, token, -1);
+      token = token->next;
       continue;
     }
 

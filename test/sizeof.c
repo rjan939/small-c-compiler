@@ -29,6 +29,7 @@ int main() {
   ASSERT(8, sizeof((long)-10 / 5));
 
   ASSERT(1, ({ char i; sizeof(++i); }));
+  ASSERT(1, ({ char i; sizeof(i++); }));
 
   printf("\nEVERYTHING GOOD\n");
   return 0;
