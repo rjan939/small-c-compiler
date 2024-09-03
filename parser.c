@@ -882,6 +882,9 @@ static Node *unary(Token **rest, Token *token) {
   if (equal(token, "*")) 
     return new_unary(ND_DEREF, cast(rest, token->next), token);
   
+  if (equal(token, "!"))
+    return new_unary(ND_NOT, cast(rest, token->next), token);
+  
   // Read ++i as i += 1
   if (equal(token, "++"))
     return to_assign(new_add(unary(rest, token->next), new_num(1, token), token));
