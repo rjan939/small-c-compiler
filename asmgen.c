@@ -258,6 +258,7 @@ static void gen_expr(Node *node) {
       println("  imul %s, %s", di, ax);
       return;
     case ND_DIV:
+    case ND_MOD:
       // 64-bit instruction
       if (node->left->type->size == 8)
         println("  cqo");
@@ -265,6 +266,9 @@ static void gen_expr(Node *node) {
       else
         println(" cdq");
       println("  idiv %s", di);
+
+      if (node->node_type == ND_MOD)
+        println("  mov %%rdx, %%rax");
       return;
     case ND_EQ:
     case ND_NE:

@@ -97,6 +97,7 @@ void add_type(Node *node) {
     case ND_SUB:
     case ND_MUL:
     case ND_DIV:
+    case ND_MOD:
       usual_arithmetic_conversion(&node->left, &node->right);
       node->type = node->left->type;
       return;
