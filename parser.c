@@ -869,7 +869,7 @@ static Node *cast(Token **rest, Token *token) {
   return unary(rest, token);
 }
 
-// unary = ("+" | "-" | "*" | "&") cast 
+// unary = ("+" | "-" | "*" | "&" | "!" | "~") cast 
 //       | ("++" | "--") unary
 //       | postfix
 static Node *unary(Token **rest, Token *token) {
@@ -884,6 +884,8 @@ static Node *unary(Token **rest, Token *token) {
   
   if (equal(token, "!"))
     return new_unary(ND_NOT, cast(rest, token->next), token);
+  if (equal(token, "~"))
+    return new_unary(ND_BITNOT, cast(rest, token->next), token);
   
   // Read ++i as i += 1
   if (equal(token, "++"))

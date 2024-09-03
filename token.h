@@ -113,6 +113,7 @@ typedef enum {
   ND_ADDRESS, // unary &
   ND_DEREF, // unary *
   ND_NOT, // !
+  ND_BITNOT, // ~
   ND_RETURN, // "return"
   ND_IF, // "if" (expr)
   ND_FOR, // "for" or "while"
