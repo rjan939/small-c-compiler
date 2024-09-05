@@ -58,6 +58,9 @@ static Node *statement(Token **rest, Token *token);
 static Node *expr_statement(Token **rest, Token *token);
 static Node *expr(Token **rest, Token *token);
 static Node *assign(Token **rest, Token *token);
+static Node *bitor(Token **rest, Token *token);
+static Node *bitxor(Token **rest, Token *token);
+static Node *bitand(Token **rest, Token *token);
 static Node *equality(Token **rest, Token *token);
 static Node *relational(Token **rest, Token *token);
 static Node *add(Token **rest, Token *token);
@@ -684,10 +687,10 @@ static Node *to_assign(Node *binary) {
   return new_binary(ND_COMMA, expr1, expr2, token);
 }
 
-// assign = equality (assign-op assign)?
-// assign-op = "=" | "+=" | "-=" | "*=" | "/=" | "%="
+// assign = bitor (assign-op assign)?
+// assign-op = "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^="
 static Node *assign(Token **rest, Token *token) {
-  Node *node = equality(&token, token);
+  Node *node = bitor(&token, token);
   if (equal(token, "=")) {
     node = new_binary(ND_ASSIGN, node, assign(&token, token->next), token);
   }
@@ -706,10 +709,53 @@ static Node *assign(Token **rest, Token *token) {
   
   if (equal(token, "%="))
     return to_assign(new_binary(ND_MOD, node, assign(rest, token->next), token));
+
+  if (equal(token, "&="))
+    return to_assign(new_binary(ND_BITAND, node, assign(rest, token->next), token)); 
+  
+  if (equal(token, "|="))
+    return to_assign(new_binary(ND_BITOR, node, assign(rest, token->next), token));
+  
+  if (equal(token, "^="))
+    return to_assign(new_binary(ND_BITXOR, node, assign(rest, token->next), token));
   
   *rest = token;
   return node;
 }
+
+// bitor = bitxor ("|" bitxor)*
+static Node *bitor(Token **rest, Token *token) {
+  Node *node = bitxor(&token, token);
+  while (equal(token, "|")) {
+    Token *start = token;
+    node = new_binary(ND_BITOR, node, bitxor(&token, token->next), start);
+  }
+  *rest = token;
+  return node;
+}
+
+// bitxor = bitand ("^" bitand)*
+static Node *bitxor(Token **rest, Token *token) {
+  Node *node = bitand(&token, token);
+  while (equal(token, "^")) {
+    Token *start = token;
+    node = new_binary(ND_BITXOR, node, bitand(&token, token->next), start);
+  }
+  *rest = token;
+  return node;
+}
+
+// bitand = equality ("&" equality)*
+static Node *bitand(Token **rest, Token *token) {
+  Node *node = equality(&token, token);
+  while (equal(token, "&")) {
+    Token *start = token;
+    node = new_binary(ND_BITAND, node, equality(&token, token->next), start);
+  }
+  *rest = token;
+  return node;
+}
+
 
 // equality = relational ("==" relational | "!=" relational)* 
 static Node *equality(Token **rest, Token *token) {
