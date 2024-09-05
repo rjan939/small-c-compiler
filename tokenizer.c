@@ -142,7 +142,7 @@ static int from_hex(char c) {
 static int get_punct_length(char *p) {
   static char *puncts[] = {
     "==", "!=", "<=", ">=", "->", "+=", "-=", "*=", "/=", "++", "--", 
-    "%=", "&=", "|=", "^=",
+    "%=", "&=", "|=", "^=", "&&", "||",
   };
 
   for (int i = 0; i < sizeof(puncts) / sizeof(*puncts); i++)
