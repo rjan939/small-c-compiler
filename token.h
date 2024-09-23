@@ -24,12 +24,12 @@ char *format(char *fmt, ...);
 // tokenizer.c 
 
 typedef struct File {
-  char *name; // Original filename
-  int unique_id; // Unique file num
-  char *contents;
+        char *name; // Original filename
+        int unique_id; // Unique file num
+        char *contents;
 
-  char *display_name; // Display name for error messages
-  int line_number; // Line number delta
+        char *display_name; // Display name for error messages
+        int line_number; // Line number delta
 } File;
 
 
@@ -38,25 +38,25 @@ File *new_file(char* name, int file_num, char *contents);
 typedef struct Token Token;
 
 typedef enum TokenType {
-  T_IDENT,   // Identifiers
-  T_PUNCT,   // Punctuators
-  T_KEYWORD, // Keywords
-  T_STR,     // String literals
-  T_NUM,     // Numeric literals
-  T_PP_NUM,  // Preprocessing numbers
-  T_EOF,     // End-of-file markers
+        T_IDENT,   // Identifiers
+        T_PUNCT,   // Punctuators
+        T_KEYWORD, // Keywords
+        T_STR,     // String literals
+        T_NUM,     // Numeric literals
+        T_PP_NUM,  // Preprocessing numbers
+        T_EOF,     // End-of-file markers
 } TokenType;
 
 typedef struct Token {
-  TokenType token_type; // Kind of Token
-  Token *next; // Next token
-  int64_t val; // If tokenType == T_NUM, its value
-  char *loc; // Token location
-  int len; // Token length
-  Type *type; // Used if T_STR
-  char *str; // String literal contents including terminating '\0'
+        TokenType token_type; // Kind of Token
+        Token *next; // Next token
+        int64_t val; // If tokenType == T_NUM, its value
+        char *loc; // Token location
+        int len; // Token length
+        Type *type; // Used if T_STR
+        char *str; // String literal contents including terminating '\0'
 
-  int line_num;
+        int line_num;
 } Token;
 
 void error(char *fmt, ...);
@@ -68,101 +68,101 @@ bool consume(Token **rest, Token *token, char *str);
 Token *tokenize_file(char *filename);
 
 #define unreachable() \
-  error("internal error at %s:%d", __FILE__, __LINE__);
+        error("internal error at %s:%d", __FILE__, __LINE__);
 
 // parser.c
 
 typedef struct Obj Obj;
 struct Obj {
-  Obj *next;
-  char *name; // Variable name
-  Type *type; // Type
-  bool is_local; // local or global/function
+        Obj *next;
+        char *name; // Variable name
+        Type *type; // Type
+        bool is_local; // local or global/function
 
-  // Local variable
-  int offset; // offset from %rbp
+        // Local variable
+        int offset; // offset from %rbp
 
-  // Global variable or function
-  bool is_function;
-  bool is_definition;
-  bool is_static;
+        // Global variable or function
+        bool is_function;
+        bool is_definition;
+        bool is_static;
 
-  // Global variable
-  char *init_data;
+        // Global variable
+        char *init_data;
 
-  // Function;
-  Obj *params;
-  Node *body;
-  Obj *locals;
-  int stack_size;
+        // Function;
+        Obj *params;
+        Node *body;
+        Obj *locals;
+        int stack_size;
 };
 
 typedef enum {
-  ND_ADD, // +
-  ND_SUB, // -
-  ND_MUL, // *
-  ND_DIV, // /
-  ND_NEG, // unary -
-  ND_MOD, // %
-  ND_BITAND, // &
-  ND_BITOR, // |
-  ND_BITXOR, // ^
-  ND_EQ, // --
-  ND_NE, // !=
-  ND_LT, // < or >
-  ND_LE, // <= or >=
-  ND_ASSIGN, // =
-  ND_COMMA, // ,
-  ND_MEMBER, // . (struct member access)
-  ND_ADDRESS, // unary &
-  ND_DEREF, // unary *
-  ND_NOT, // !
-  ND_BITNOT, // ~
-  ND_LOGAND, // &&
-  ND_LOGOR, // ||
-  ND_RETURN, // "return"
-  ND_IF, // "if" (expr)
-  ND_FOR, // "for" or "while"
-  ND_BLOCK, // {...}
-  ND_FUNCALL, // Function call
-  ND_STATEMENT, // Expression statement ";"
-  ND_STATEMENT_EXPRESSION, // Statement expression [GNU] C extension
-  ND_NULL_STATEMENT, // ";" with no actual expression or declaration
-  ND_VAR, // Variable
-  ND_NUM, // Integer
-  ND_CAST, // Type cast
+        ND_ADD, // +
+        ND_SUB, // -
+        ND_MUL, // *
+        ND_DIV, // /
+        ND_NEG, // unary -
+        ND_MOD, // %
+        ND_BITAND, // &
+        ND_BITOR, // |
+        ND_BITXOR, // ^
+        ND_EQ, // --
+        ND_NE, // !=
+        ND_LT, // < or >
+        ND_LE, // <= or >=
+        ND_ASSIGN, // =
+        ND_COMMA, // ,
+        ND_MEMBER, // . (struct member access)
+        ND_ADDRESS, // unary &
+        ND_DEREF, // unary *
+        ND_NOT, // !
+        ND_BITNOT, // ~
+        ND_LOGAND, // &&
+        ND_LOGOR, // ||
+        ND_RETURN, // "return"
+        ND_IF, // "if" (expr)
+        ND_FOR, // "for" or "while"
+        ND_BLOCK, // {...}
+        ND_FUNCALL, // Function call
+        ND_STATEMENT, // Expression statement ";"
+        ND_STATEMENT_EXPRESSION, // Statement expression [GNU] C extension
+        ND_NULL_STATEMENT, // ";" with no actual expression or declaration
+        ND_VAR, // Variable
+        ND_NUM, // Integer
+        ND_CAST, // Type cast
 } NodeType;
 
 // AST Node type
 typedef struct Node {
-  NodeType node_type; // Type of Node
-  Node *next; // Next Node
-  Token *token; // Representative token
-  Type *type; // Type, like int or pointer to int or char, etc.
-  
-  Node *left; // left-side of AST
-  Node *right; // right-side of AST 
+        NodeType node_type; // Type of Node
+        Node *next; // Next Node
+        Token *token; // Representative token
+        Type *type; // Type, like int or pointer to int or char, etc.
 
-  // "if" or "for" statement
-  Node *cond;
-  Node *then;
-  Node *els;
-  Node *init;
-  Node *inc;
+        Node *left; // left-side of AST
+        Node *right; // right-side of AST 
 
-  // ND_BLOCK or statement expression
-  Node *body;
-  
-  // Struct member access
-  Member *member;
+        // "if" or "for" statement
+        Node *cond;
+        Node *then;
+        Node *els;
+        Node *init;
+        Node *inc;
 
-  // Function call
-  char *funcname;
-  Type *func_type;
-  Node *args;
+        // ND_BLOCK or statement expression
+        Node *body;
 
-  int64_t val; // Only used if NodeType == ND_NUM
-  Obj *var; // Only used if NodeType == ND_VAR
+        // Struct member access
+        Member *member;
+
+        // Function call
+        char *funcname;
+        Type *func_type;
+        Node *args;
+
+        int64_t val; // Only used if NodeType == ND_NUM
+        Obj *var; // Only used if NodeType == ND_VAR
 } Node;
 
 Node *new_cast(Node *expr, Type *type);
@@ -171,55 +171,55 @@ Obj *parse(Token *token);
 // type.c
 
 typedef enum {
-  TY_VOID,
-  TY_BOOL,
-  TY_CHAR,
-  TY_SHORT,
-  TY_INT,
-  TY_LONG,
-  TY_ENUM,
-  TY_PTR,
-  TY_FUNC,
-  TY_ARRAY,
-  TY_STRUCT,
-  TY_UNION,
+        TY_VOID,
+        TY_BOOL,
+        TY_CHAR,
+        TY_SHORT,
+        TY_INT,
+        TY_LONG,
+        TY_ENUM,
+        TY_PTR,
+        TY_FUNC,
+        TY_ARRAY,
+        TY_STRUCT,
+        TY_UNION,
 } TypeKind;
 
 struct Type {
-  TypeKind kind;
+        TypeKind kind;
 
-  int size; // sizeof() value
-  int align; // alignment
-  
-  // Pointer-to or array-of type
-  // Intentionally use same member to represent pointer/array duality in C
-  // In the case that a pointer is expected, we can look at this
-  // member instead of "kind" member to determine whether a type is a pointer or not.
-  // "Array of X" is naturally handled as if it were "pointer to X", as required by
-  // C spec. 
-  Type *base;
+        int size; // sizeof() value
+        int align; // alignment
 
-  // Declaration
-  Token *name;
+        // Pointer-to or array-of type
+        // Intentionally use same member to represent pointer/array duality in C
+        // In the case that a pointer is expected, we can look at this
+        // member instead of "kind" member to determine whether a type is a pointer or not.
+        // "Array of X" is naturally handled as if it were "pointer to X", as required by
+        // C spec. 
+        Type *base;
 
-  // Array
-  int array_len;
+        // Declaration
+        Token *name;
 
-  // Struct
-  Member *members;
+        // Array
+        int array_len;
 
-  // Function type
-  Type *return_type;
-  Type *params;
-  Type *next;
+        // Struct
+        Member *members;
+
+        // Function type
+        Type *return_type;
+        Type *params;
+        Type *next;
 };
 
 // struct
 struct Member {
-  Member *next;
-  Type *type;
-  Token *name;
-  int offset;
+        Member *next;
+        Type *type;
+        Token *name;
+        int offset;
 };
 
 extern Type *ty_void;

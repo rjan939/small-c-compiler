@@ -1,7 +1,7 @@
 #!/bin/bash
 
 cleanup() {
-  rm -rf $tmp
+        rm -rf $tmp
 }
 
 tmp=`mktemp -d /tmp/compiler-test-XXXXXX`
@@ -9,12 +9,12 @@ trap cleanup INT TERM HUP EXIT
 echo > $tmp/empty.c
 
 check() {
-  if [ $? -eq 0 ]; then
-    echo "testing $1 ... passed"
-  else
-    echo "testing $1 ... failed"
-    exit 1
-  fi
+        if [ $? -eq 0 ]; then
+                echo "testing $1 ... passed"
+        else
+                echo "testing $1 ... failed"
+                        exit 1
+                        fi
 }
 
 # -o
