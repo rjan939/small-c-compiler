@@ -218,6 +218,7 @@ struct Type {
 struct Member {
         Member *next;
         Type *type;
+        Token *token; // for error message
         Token *name;
         int offset;
 };

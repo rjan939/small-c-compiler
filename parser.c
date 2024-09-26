@@ -51,6 +51,7 @@ static Obj *current_func;
 static bool is_typename(Token *token);
 static Type *declaration_specifier(Token **rest, Token *token, var_attribute *attribute);
 static Type *enum_specifier(Token **rest, Token *token);
+static Type *type_suffix(Token **rest, Token *token, Type *type);
 static Type *declarator(Token **rest, Token *token, Type *type);
 static Node *declaration(Token **rest, Token *token, Type *basetype);
 static Node *compound_statement(Token **rest, Token *token);
@@ -387,18 +388,27 @@ static Type *func_params(Token **rest, Token *token, Type *type) {
         return type;
 }
 
+// array-dimensions = num? "]" type-suffix
+static Type *array_dimensions(Token **rest, Token *token, Type *type) {
+        if (equal(token, "]")) {
+                type = type_suffix(rest, token->next, type);
+                return array_of(type, -1);
+        }
+        int sz = get_number(token);
+        token = skip(token->next, "]");
+        type = type_suffix(rest, token, type);
+        return array_of(type, sz);
+}
+
 // type-suffix = "(" func-params
-//             | "[" num "]" type-suffix
+//             | "[" array-dimensions
 //             | ε
 static Type *type_suffix(Token **rest, Token *token, Type *type) {
         if (equal(token, "(")) 
                 return func_params(rest, token->next, type);
 
         if (equal(token, "[")) {
-                int size = get_number(token->next);
-                token = skip(token->next->next, "]");
-                type = type_suffix(rest, token, type);
-                return array_of(type, size);
+                return array_dimensions(rest, token->next, type);
         }
 
         *rest = token;
@@ -512,6 +522,8 @@ static Node *declaration(Token **rest, Token *token, Type *basetype) {
                         token = skip(token, ",");
 
                 Type *type = declarator(&token, token, basetype);
+                if (type->size < 0)
+                        error_tok(token, "variable has incomplete type");
                 if (type->kind == TY_VOID)
                         error_tok(token, "variable declared void");
                 Obj *var = new_lvar(get_ident(type->name), type);
