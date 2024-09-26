@@ -377,9 +377,18 @@ static Type *func_params(Token **rest, Token *token, Type *type) {
         while (!equal(token, ")")) {
                 if (cur != &head)
                         token = skip(token, ",");
-                Type *basetype = declaration_specifier(&token, token, NULL);
-                Type *type = declarator(&token, token, basetype);
-                cur = cur->next = copy_type(type);
+                Type *type2 = declaration_specifier(&token, token, NULL);
+                type2 = declarator(&token, token, type2);
+
+                // Array of "T" is converted to pointer of "T" only in the parameter
+                // context. For example, *argv[] is converted to **argv by this.
+                if (type2->kind == TY_ARRAY) {
+                        Token *name = type2->name;
+                        type2 = pointer_to(type2->base);
+                        type2->name = name;
+                }
+
+                cur = cur->next = copy_type(type2);
         }
 
         type = func_type(type);
