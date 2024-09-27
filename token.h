@@ -237,6 +237,7 @@ Type *pointer_to(Type *base);
 Type *func_type(Type *return_type);
 Type *array_of(Type *base, int size);
 Type *enum_type(void);
+Type *struct_type(void);
 void add_type(Node *node);
 
 // asmgen.c

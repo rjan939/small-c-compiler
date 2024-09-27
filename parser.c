@@ -1035,22 +1035,35 @@ static Type *struct_union_declaration(Token **rest, Token *token) {
         }
 
         if (tag && !equal(token, "{")) {
-                Type *type = find_tag(tag);
-                if (!type)
-                        error_tok(tag, "unknown struct type");
                 *rest = token;
+                Type *type = find_tag(tag);
+                if (type)
+                        return type;
+                type = struct_type();
+                type->size = -1;
+                push_tag_scope(tag, type);
                 return type;
         }
 
+        token = skip(token, "{");
+
         // Build struct object
-        Type *type = calloc(1, sizeof(Type));
-        if (type == NULL)
-                error("not enough memory in system to allocate for struct object");
-        type->kind = TY_STRUCT;
-        struct_members(rest, token->next, type);
-        type->align = 1;
-        if (tag)
+        Type *type = struct_type();
+        struct_members(rest, token, type);
+
+        if (tag) {
+                // If this is a redefinition, overwrite a previous type
+                // Otherwise, register the struct type
+                for (tag_scope *sc= scope->tags; sc; sc = sc->next) {
+                        if (equal(tag, sc->name)) {
+                                *sc->type = *type;
+                                return sc->type;
+                        }
+
+                }
                 push_tag_scope(tag, type);
+        }
+
         return type;
 }
 
@@ -1059,6 +1072,9 @@ static Type *struct_union_declaration(Token **rest, Token *token) {
 static Type *struct_declaration(Token **rest, Token *token) {
         Type *type = struct_union_declaration(rest, token);
         type->kind = TY_STRUCT;
+
+        if (type->size < 0)
+                return type;
 
         // Assign offsets within structs to members
         int offset = 0;
@@ -1079,6 +1095,8 @@ static Type *union_declaration(Token **rest, Token *token) {
         Type *type = struct_union_declaration(rest, token);
         type->kind = TY_UNION;
 
+        if (type->size < 0)
+                return type;
         // Unions dont need offsets since they are already initialized to zero, we still need to compute alignment and size though
         for (Member *member = type->members; member; member = member->next) {
                 if (type->align < member->type->align)

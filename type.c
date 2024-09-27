@@ -57,6 +57,10 @@ Type *enum_type(void) {
         return new_type(TY_ENUM, 4, 4);
 }
 
+Type *struct_type(void) {
+        return new_type(TY_STRUCT, 0 , 1);
+}
+
 static Type *get_common_type(Type *type1, Type *type2) {
         if (type1->base)
                 return pointer_to(type1->base);
